@@ -1,0 +1,14 @@
+{
+  "reviews": [
+    {
+      "skill": "release-checklist",
+      "date": "2099-01-01",
+      "result": "pass",
+      "scope": "full",
+      "version": "0.3.1",
+      "commit": null,
+      "ref": null,
+      "note": "示範資料：逐份讀完，沒有腳本"
+    }
+  ]
+}

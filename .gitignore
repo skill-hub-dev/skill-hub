@@ -2,6 +2,7 @@
 skill-hub.config.json
 out/
 usage/*.jsonl
+data/
 
 # 本機工作紀錄
 .claude/

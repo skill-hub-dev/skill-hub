@@ -1,29 +1,11 @@
 // 健檢規則：每條回傳 { level: 'error' | 'warn' | 'info', code, message }
-import fs from 'node:fs';
-import path from 'node:path';
 import { remoteHead } from './git.mjs';
 
 const SEMVER = /^\d+\.\d+\.\d+(?:[-+][\w.-]+)?$/;
 const KEBAB = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const SECRET = /(sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|hf_[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|-----BEGIN [A-Z ]*PRIVATE KEY-----)/;
 const DAY = 86400000;
 
-function secretFiles(dir) {
-  const hits = [];
-  const walk = (d) => {
-    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
-      if (e.name === '.git' || e.name === 'node_modules') continue;
-      const p = path.join(d, e.name);
-      if (e.isDirectory()) { walk(p); continue; }
-      if (fs.statSync(p).size > 2 * 1024 * 1024) continue;
-      const buf = fs.readFileSync(p);
-      if (buf.includes(0)) continue; // 二進位檔
-      if (SECRET.test(buf.toString('utf8'))) hits.push(path.relative(dir, p).split(path.sep).join('/'));
-    }
-  };
-  walk(dir);
-  return hits;
-}
+export const thirdPartyOf = (s) => !!(s.upstream || s.license || s.hasLicenseFile);
 
 export function checkSkill(s, ctx) {
   const out = [];
@@ -47,15 +29,23 @@ export function checkSkill(s, ctx) {
 
   if (s.bodyLines > c.bodyMaxLines) add('warn', 'body-too-long', `本文 ${s.bodyLines} 行，超過 ${c.bodyMaxLines}（細節建議拆到 references/）`);
 
-  const thirdParty = s.upstream || s.license || s.hasLicenseFile;
-  if (thirdParty) {
+  if (thirdPartyOf(s)) {
     if (!s.upstream) add('warn', 'missing-source', '看起來是第三方 skill，但沒有 metadata.source');
     if (!s.upstreamCommit) add('warn', 'missing-source-commit', '第三方 skill 沒有 metadata.source_commit，無法比對上游更新');
     if (!s.license) add('warn', 'missing-license', '第三方 skill 沒有 license 欄位');
   }
 
-  const secrets = secretFiles(s.absPath);
-  if (secrets.length) add('error', 'secret', `疑似含有密鑰：${secrets.join('、')}`);
+  // 資安（scan 與 review 由 report.mjs 先算好）
+  const sec = s.security;
+  if (sec.scan.secrets.length) add('error', 'secret', `疑似含有密鑰：${sec.scan.secrets.join('、')}`);
+  if (sec.scan.hidden.length) add('warn', 'hidden-chars', `含有隱藏字元（零寬、雙向控制等），可能藏有指令：${sec.scan.hidden.join('、')}`);
+  if (sec.status === 'failed') add('error', 'review-failed', `資安審查未通過（${sec.review.date}）：${sec.review.note || '見審查紀錄'}`);
+  else if (sec.status === 'stale') add('warn', 'review-stale', `資安審查（${sec.review.date}）之後又修改了 ${sec.changedSince} 次，需要重新審查`);
+  else if (sec.status === 'none' && thirdPartyOf(s)) add('warn', 'not-reviewed', '第三方 skill 沒有資安審查紀錄');
+  const risky = sec.scan.scripts.filter((x) => x.risks.length);
+  if (risky.length && sec.status !== 'passed') {
+    add('info', 'risky-scripts', `腳本含有${[...new Set(risky.flatMap((x) => x.risks))].join('、')}：${risky.map((x) => x.file).join('、')}`);
+  }
 
   // 版本紀錄
   if (s.versions.length && s.commits.length) {

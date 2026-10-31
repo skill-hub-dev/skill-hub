@@ -5,6 +5,7 @@ description: |
   只要使用者提到「會議紀錄」「逐字稿」「待辦清單」「meeting notes」等，即使沒有明確說要用，也應主動調用此技能。
 metadata:
   version: "1.2.0"
+  category: 管理
   changelog: "1.2.0: 新增負責人欄位 | 1.1.0: 支援英文逐字稿 | 1.0.0: 初版"
 ---
 

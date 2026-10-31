@@ -8,8 +8,8 @@
 :root {
   --bg: #f6f6f3; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6b66; --line: #e3e2dc;
   --accent: #2f5bd3; --accent-soft: #e7edfb;
-  --ok: #2e7d4f; --warn: #b26a00; --err: #c0392b; --info: #5a6b85;
-  --ok-soft: #e3f2e8; --warn-soft: #fbf0dc; --err-soft: #fbe5e2; --info-soft: #e9edf3;
+  --ok: #2e7d4f; --warn: #b26a00; --err: #c0392b; --info: #5a6b85; --part: #2f6fa3;
+  --ok-soft: #e3f2e8; --warn-soft: #fbf0dc; --err-soft: #fbe5e2; --info-soft: #e9edf3; --part-soft: #e2eef8;
   --bar: #9db3ea; --bar-hot: #2f5bd3;
   --radius: 10px;
   --font: system-ui, -apple-system, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
@@ -19,16 +19,16 @@
   :root:not([data-theme="light"]) {
     --bg: #141413; --panel: #1d1d1b; --ink: #ecebe6; --muted: #9a9993; --line: #33322e;
     --accent: #8aa6f0; --accent-soft: #23293a;
-    --ok: #6cc28f; --warn: #e3a64a; --err: #ef7d70; --info: #9fb0c9;
-    --ok-soft: #1d2e24; --warn-soft: #33281a; --err-soft: #3a211e; --info-soft: #232831;
+    --ok: #6cc28f; --warn: #e3a64a; --err: #ef7d70; --info: #9fb0c9; --part: #7fb4dd;
+    --ok-soft: #1d2e24; --warn-soft: #33281a; --err-soft: #3a211e; --info-soft: #232831; --part-soft: #1c2a36;
     --bar: #3d4f7d; --bar-hot: #8aa6f0;
   }
 }
 :root[data-theme="dark"] {
   --bg: #141413; --panel: #1d1d1b; --ink: #ecebe6; --muted: #9a9993; --line: #33322e;
   --accent: #8aa6f0; --accent-soft: #23293a;
-  --ok: #6cc28f; --warn: #e3a64a; --err: #ef7d70; --info: #9fb0c9;
-  --ok-soft: #1d2e24; --warn-soft: #33281a; --err-soft: #3a211e; --info-soft: #232831;
+  --ok: #6cc28f; --warn: #e3a64a; --err: #ef7d70; --info: #9fb0c9; --part: #7fb4dd;
+  --ok-soft: #1d2e24; --warn-soft: #33281a; --err-soft: #3a211e; --info-soft: #232831; --part-soft: #1c2a36;
   --bar: #3d4f7d; --bar-hot: #8aa6f0;
 }
 * { box-sizing: border-box; }
@@ -43,25 +43,37 @@ header .spacer { flex: 1; }
 .ghost { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; cursor: pointer; color: var(--muted); }
 .ghost:hover { color: var(--ink); border-color: var(--muted); }
 
-.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+.tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
 .tile { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; cursor: pointer; text-align: left; }
 .tile:hover { border-color: var(--muted); }
 .tile .n { font-size: 28px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.2; }
 .tile .l { color: var(--muted); font-size: 13px; }
-.platforms { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; font-size: 13px; color: var(--muted); }
+.platforms { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; font-size: 13px; color: var(--muted); }
 .platforms span { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
 .platforms b { color: var(--ink); font-weight: 600; }
-.notes { margin: -8px 0 20px; padding: 0; list-style: none; font-size: 13px; color: var(--warn); }
 
-.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 16px; overflow-x: auto; }
+.tab { background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 14px; cursor: pointer; color: var(--muted); white-space: nowrap; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+.view[hidden] { display: none; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
 .toolbar input[type=search] { flex: 1 1 240px; min-width: 0; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); }
-.toolbar select { padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); }
+.toolbar select { padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); max-width: 100%; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: 13px; }
 .chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted); margin: 4px 0 10px; align-items: center; }
+.legend .k { display: inline-flex; align-items: center; gap: 6px; }
+.legend .bars { display: inline-flex; gap: 2px; align-items: flex-end; }
+.legend .bars i { display: block; width: 5px; height: 10px; border-radius: 1px; background: var(--bar); }
+.legend .bars i.hot { background: var(--bar-hot); }
 
 .list { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-.row { display: grid; grid-template-columns: 14px minmax(0, 1fr) 78px 132px 96px; gap: 14px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--line); cursor: pointer; }
+.group-title { display: flex; align-items: baseline; gap: 10px; margin: 22px 0 8px; font-size: 15px; }
+.group-title:first-child { margin-top: 0; }
+.group-title small { color: var(--muted); font-weight: 400; font-size: 13px; }
+.row { display: grid; grid-template-columns: 14px minmax(0, 1fr) 96px 70px 132px 92px; gap: 14px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--line); cursor: pointer; }
 .row:first-child { border-top: 0; }
 .row:hover, .row:focus-visible { background: var(--accent-soft); outline: none; }
 .row .name { font-weight: 600; overflow-wrap: anywhere; }
@@ -73,16 +85,41 @@ header .spacer { flex: 1; }
 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); }
 .dot.warn { background: var(--warn); } .dot.error { background: var(--err); }
 .tag { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 4px; background: var(--info-soft); color: var(--info); margin-left: 6px; font-weight: 500; vertical-align: 1px; }
+.sec { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.sec.passed { background: var(--ok-soft); color: var(--ok); }
+.sec.partial { background: var(--part-soft); color: var(--part); }
+.sec.stale { background: var(--warn-soft); color: var(--warn); }
+.sec.failed { background: var(--err-soft); color: var(--err); }
+.sec.none { background: var(--info-soft); color: var(--info); }
+.sec.none.third { background: var(--warn-soft); color: var(--warn); }
 .spark { display: block; }
 .empty { padding: 32px; text-align: center; color: var(--muted); }
 
-section.more { margin-top: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
-.card h2 { font-size: 15px; margin: 0 0 4px; }
+.card h2 { font-size: 15px; margin: 0 0 4px; overflow-wrap: anywhere; }
 .card p.sub { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
 .card table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .card td { padding: 5px 0; border-top: 1px solid var(--line); vertical-align: top; }
 .card td:last-child { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; padding-left: 8px; }
+section.more { margin-top: 28px; }
+
+.projects { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.proj .stats { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill { border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 2px 10px; font-size: 13px; cursor: pointer; }
+.pill:hover { border-color: var(--accent); color: var(--accent); }
+.pill.unmanaged { cursor: default; border-style: dashed; color: var(--muted); }
+.pill.unmanaged:hover { border-color: var(--line); }
+.pill b { font-weight: 600; font-variant-numeric: tabular-nums; margin-left: 4px; }
+
+.setup dl { display: grid; grid-template-columns: minmax(110px, auto) 1fr; gap: 6px 14px; margin: 0; font-size: 14px; }
+.setup dt { color: var(--muted); }
+.setup dd { margin: 0; overflow-wrap: anywhere; }
+.setup ol { margin: 0; padding-left: 20px; font-size: 14px; }
+.setup ol li { margin-bottom: 8px; }
+.setup pre { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; overflow-x: auto; font-size: 12.5px; margin: 6px 0 0; }
+.ok-t { color: var(--ok); } .warn-t { color: var(--warn); }
 
 /* 詳細面板 */
 .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.28); opacity: 0; pointer-events: none; transition: opacity .15s; }
@@ -91,7 +128,7 @@ aside { position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100%); b
 aside.open { transform: none; }
 aside .close { position: sticky; top: 0; float: right; }
 aside h2 { margin: 0 0 2px; font-size: 20px; overflow-wrap: anywhere; }
-aside h3 { font-size: 13px; text-transform: none; color: var(--muted); margin: 22px 0 8px; font-weight: 600; letter-spacing: .02em; }
+aside h3 { font-size: 13px; color: var(--muted); margin: 22px 0 8px; font-weight: 600; letter-spacing: .02em; }
 aside .desc { white-space: pre-wrap; font-size: 14px; }
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
 .kv dt { color: var(--muted); } .kv dd { margin: 0; overflow-wrap: anywhere; }
@@ -114,13 +151,15 @@ code, .mono { font-family: var(--mono); font-size: 12.5px; }
 .plat { display: grid; grid-template-columns: 1fr auto auto; gap: 4px 12px; font-size: 13px; }
 .plat .m { color: var(--muted); }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .row { grid-template-columns: 12px minmax(0, 1fr) 84px; gap: 10px; }
-  .row .ver, .row .sparkcell { display: none; }
+  .row { grid-template-columns: 12px minmax(0, 1fr) auto; gap: 10px; }
+  .row .ver, .row .sparkcell, .row .last { display: none; }
   .head { display: none; }
-  section.more { grid-template-columns: 1fr; }
+  .grid2 { grid-template-columns: 1fr; }
   .outline { columns: 1; }
+  .setup dl { grid-template-columns: 1fr; gap: 0 0; }
+  .setup dd { margin-bottom: 8px; }
 }
 </style>
 </head>
@@ -135,27 +174,48 @@ code, .mono { font-family: var(--mono); font-size: 12.5px; }
 
   <div class="tiles" id="tiles"></div>
   <div class="platforms" id="platforms"></div>
-  <ul class="notes" id="notes"></ul>
 
-  <div class="toolbar">
-    <input type="search" id="q" placeholder="搜尋名稱、用途、觸發詞…" aria-label="搜尋">
-    <select id="sort" aria-label="排序">
-      <option value="lastUsed">最近使用</option>
-      <option value="uses">使用次數（近 90 天）</option>
-      <option value="updated">最近更新</option>
-      <option value="name">名稱</option>
-      <option value="health">健檢狀態</option>
-    </select>
-    <select id="source" aria-label="來源"></select>
+  <nav class="tabs" role="tablist" id="tabs">
+    <button class="tab" role="tab" data-view="skills" aria-selected="true">Skill 清單</button>
+    <button class="tab" role="tab" data-view="categories" aria-selected="false">依分類</button>
+    <button class="tab" role="tab" data-view="projects" aria-selected="false">依專案</button>
+    <button class="tab" role="tab" data-view="setup" aria-selected="false">設定與說明</button>
+  </nav>
+
+  <!-- Skill 清單、依分類共用同一組篩選 -->
+  <div id="filters">
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="搜尋名稱、用途、觸發詞…" aria-label="搜尋">
+      <select id="category" aria-label="分類"></select>
+      <select id="sort" aria-label="排序">
+        <option value="lastUsed">最近使用</option>
+        <option value="uses">使用次數（近 90 天）</option>
+        <option value="updated">最近更新</option>
+        <option value="name">名稱</option>
+        <option value="health">健檢狀態</option>
+        <option value="security">資安狀態</option>
+      </select>
+      <select id="source" aria-label="來源"></select>
+    </div>
+    <div class="toolbar"><div class="chips" id="chips"></div></div>
+    <div class="legend" id="legend">
+      <span class="k"><span class="dot"></span>健檢正常</span>
+      <span class="k"><span class="dot warn"></span>有警告</span>
+      <span class="k"><span class="dot error"></span>有錯誤</span>
+      <span class="k"><span class="bars"><i></i><i></i><i class="hot"></i></span>近 26 週使用次數（深色＝最近 4 週）</span>
+      <span class="k"><span class="sec passed">已檢查</span><span class="sec partial">部分檢查</span><span class="sec stale">需重審</span><span class="sec none">未檢查</span>資安審查</span>
+    </div>
   </div>
-  <div class="toolbar"><div class="chips" id="chips"></div></div>
 
-  <div class="list" id="list" role="list"></div>
+  <section class="view" id="view-skills"><div class="list" id="list" role="list"></div></section>
+  <section class="view" id="view-categories" hidden></section>
+  <section class="view" id="view-projects" hidden></section>
+  <section class="view setup" id="view-setup" hidden></section>
 
-  <section class="more">
+  <section class="more grid2" id="more">
     <div class="card">
       <h2>健檢總覽</h2>
-      <p class="sub">各規則命中的 skill 數；點列名可篩選</p>
+      <p class="sub">各規則命中的 skill 數；點規則名稱可篩選</p>
       <table id="rules"></table>
     </div>
     <div class="card">
@@ -175,12 +235,15 @@ const DAY = 86400000;
 const NOW = Date.parse(R.generatedAt);
 const PLATFORM = { 'claude-code': 'Claude Code', codex: 'Codex', 'grok-bot': 'Grok Bot' };
 const HEALTH = { ok: '正常', warn: '警告', error: '錯誤' };
+const SEC = { passed: '已檢查', partial: '部分檢查', stale: '需重審', failed: '未通過', none: '未檢查' };
+const CAT_SOURCE = { skill: 'SKILL.md 指定', config: '設定檔指定', auto: '依關鍵字自動判斷', none: '無法判斷' };
 const RULE = {
   'no-frontmatter': '缺 frontmatter', 'missing-name': '缺 name', 'name-mismatch': 'name 與資料夾不同', 'not-kebab': '資料夾非 kebab-case',
   'missing-description': '缺 description', 'description-too-long': 'description 過長', 'no-triggers': '沒有觸發關鍵字',
   'missing-version': '缺版本號', 'bad-version': '版本號格式錯', 'body-too-long': '本文過長', 'missing-source': '第三方缺 source',
   'missing-source-commit': '第三方缺 source_commit', 'missing-license': '第三方缺 license', secret: '疑似含密鑰',
-  'no-bump': '改了沒升版號', uncommitted: '有未 commit 修改', 'changelog-stale': 'changelog 沒跟上',
+  'hidden-chars': '含隱藏字元', 'review-failed': '資安審查未通過', 'review-stale': '資安審查後有修改', 'not-reviewed': '第三方未做資安審查',
+  'risky-scripts': '腳本含連網／執行／寫檔', 'no-bump': '改了沒升版號', uncommitted: '有未 commit 修改', 'changelog-stale': 'changelog 沒跟上',
   'never-used': '從未使用', unused: '久未使用', 'trigger-overlap': '觸發詞重疊', 'duplicate-name': '名稱重複',
   'upstream-behind': '上游有新版', 'upstream-unreachable': '上游連不到',
 };
@@ -194,8 +257,11 @@ function ago(iso) {
   if (d < 365) return `${Math.floor(d / 30)} 個月前`;
   return `${Math.floor(d / 365)} 年前`;
 }
-const day = (iso) => (iso ? iso.slice(0, 10) : '—');
+const day = (iso) => (iso ? String(iso).slice(0, 10) : '—');
 const used = (s, days) => !!s.usage?.lastUsed && NOW - Date.parse(s.usage.lastUsed) <= days * DAY;
+const byName = new Map(R.skills.map((s) => [s.name || s.folder, s]));
+const anyUsage = Object.keys(R.platforms).length > 0;
+const secBadge = (s) => `<span class="sec ${s.security.status}${s.thirdParty ? ' third' : ''}" title="資安審查：${SEC[s.security.status]}${s.security.review ? `（${s.security.review.date}）` : ''}">${SEC[s.security.status]}</span>`;
 
 function spark(weekly, w = 132, h = 26) {
   if (!weekly) return `<svg class="spark" width="${w}" height="${h}" aria-hidden="true"><line x1="0" y1="${h - 1}" x2="${w}" y2="${h - 1}" stroke="var(--line)"/></svg>`;
@@ -209,55 +275,63 @@ function spark(weekly, w = 132, h = 26) {
 }
 
 // ---- 狀態 ----
-const state = { q: '', sort: 'lastUsed', source: '', filter: 'all', rule: '' };
+const state = { view: 'skills', q: '', sort: 'lastUsed', source: '', category: '', filter: 'all', rule: '' };
 const FILTERS = [
   ['all', '全部'], ['attention', '需處理'], ['recent', '近 30 天有用'], ['idle', `${R.thresholds.unusedDays} 天沒用`],
-  ['never', '從未使用'], ['third', '第三方'], ['own', '自建'],
+  ['never', '從未使用'], ['reviewed', '資安已檢查'], ['unreviewed', '資安未檢查／需重審'], ['third', '第三方'], ['own', '自建'],
 ];
-const anyUsage = Object.keys(R.platforms).length > 0;
 
 function matches(s) {
   if (state.source && s.source !== state.source) return false;
+  if (state.category && s.category !== state.category) return false;
   if (state.rule && !s.issues.some((i) => i.code === state.rule)) return false;
+  const st = s.security.status;
   switch (state.filter) {
     case 'attention': if (s.health === 'ok') return false; break;
     case 'recent': if (!used(s, 30)) return false; break;
     case 'idle': if (!s.usage || used(s, R.thresholds.unusedDays)) return false; break;
     case 'never': if (s.usage) return false; break;
-    case 'third': if (!s.upstream) return false; break;
-    case 'own': if (s.upstream) return false; break;
+    case 'reviewed': if (st !== 'passed' && st !== 'partial') return false; break;
+    case 'unreviewed': if (st === 'passed' || st === 'partial') return false; break;
+    case 'third': if (!s.thirdParty) return false; break;
+    case 'own': if (s.thirdParty) return false; break;
   }
   if (!state.q) return true;
-  const hay = [s.name, s.folder, s.description, s.triggers.join(' '), s.layer, s.source].join(' ').toLowerCase();
+  const hay = [s.name, s.folder, s.description, s.triggers.join(' '), s.layer, s.source, s.category].join(' ').toLowerCase();
   return state.q.toLowerCase().split(/\s+/).filter(Boolean).every((t) => hay.includes(t));
 }
 const rank = { error: 0, warn: 1, ok: 2 };
+const secRank = { failed: 0, stale: 1, none: 2, partial: 3, passed: 4 };
 const sorters = {
   lastUsed: (a, b) => (b.usage?.lastUsed || '').localeCompare(a.usage?.lastUsed || '') || a.folder.localeCompare(b.folder),
   uses: (a, b) => (b.usage?.last90 || 0) - (a.usage?.last90 || 0) || (b.usage?.total || 0) - (a.usage?.total || 0),
   updated: (a, b) => (b.lastModified || '').localeCompare(a.lastModified || ''),
   name: (a, b) => a.folder.localeCompare(b.folder),
   health: (a, b) => rank[a.health] - rank[b.health] || b.issues.length - a.issues.length,
+  security: (a, b) => secRank[a.security.status] - secRank[b.security.status] || Number(b.thirdParty) - Number(a.thirdParty) || a.folder.localeCompare(b.folder),
 };
 
 function renderTop() {
   const S = R.skills;
   document.getElementById('meta').textContent = `${R.sources.map((s) => `${s.name}（${s.skills}）`).join('、')}・產生於 ${R.generatedAt.slice(0, 16).replace('T', ' ')}`;
+  const reviewed = S.filter((s) => ['passed', 'partial'].includes(s.security.status)).length;
   const tiles = [
     ['all', S.length, 'skill 總數'],
     ['recent', S.filter((s) => used(s, 30)).length, '近 30 天有用到'],
     ['never', anyUsage ? S.filter((s) => !s.usage).length : '—', '從未使用'],
     ['attention', S.filter((s) => s.health !== 'ok').length, '需處理（錯誤＋警告）'],
+    ['reviewed', `${reviewed}<small style="font-size:15px;color:var(--muted);font-weight:500"> / ${S.length}</small>`, '資安已檢查'],
   ];
   document.getElementById('tiles').innerHTML = tiles.map(([f, n, l]) => `<button class="tile" type="button" data-filter="${f}"><div class="n">${n}</div><div class="l">${l}</div></button>`).join('');
   const P = Object.entries(R.platforms);
-  document.getElementById('platforms').innerHTML = P.length
+  document.getElementById('platforms').innerHTML = (P.length
     ? P.map(([k, v]) => `<span><b>${esc(pname(k))}</b> ${v.events} 次・最後 ${day(v.last)}</span>`).join('')
-    : '<span>沒有找到任何使用紀錄</span>';
-  document.getElementById('notes').innerHTML = R.notes.map((n) => `<li>${esc(n)}</li>`).join('');
-  const srcSel = document.getElementById('source');
-  srcSel.innerHTML = `<option value="">全部來源</option>` + R.sources.map((s) => `<option value="${esc(s.name)}">${esc(s.name)}</option>`).join('');
-  srcSel.hidden = R.sources.length < 2;
+    : '<span>沒有找到任何使用紀錄</span>')
+    + (R.notes.length ? `<span style="cursor:pointer" data-view="setup">⚠️ ${R.notes.length} 項設定提醒，見「設定與說明」</span>` : '');
+  const sel = (id, all, items) => { document.getElementById(id).innerHTML = `<option value="">${all}</option>` + items.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join(''); };
+  sel('source', '全部來源', R.sources.map((s) => [s.name, s.name]));
+  document.getElementById('source').hidden = R.sources.length < 2;
+  sel('category', '全部分類', R.categories.map((c) => [c, `${c}（${S.filter((s) => s.category === c).length}）`]));
 }
 
 function renderChips() {
@@ -265,18 +339,81 @@ function renderChips() {
     + (state.rule ? `<button class="chip" type="button" data-rule="" aria-pressed="true">規則：${esc(RULE[state.rule] || state.rule)} ✕</button>` : '');
 }
 
+const HEAD = `<div class="row head"><span></span><span>Skill</span><span>資安</span><span>版本</span><span class="sparkcell">近 26 週使用</span><span class="last">最後使用</span></div>`;
+function rowHtml(s, showCategory = true) {
+  // 暫存區、家目錄這類「（…）」不算專案
+  const top = s.usage?.projects?.find((p) => !p.name.startsWith('（'));
+  return `<div class="row" role="listitem" tabindex="0" data-id="${esc(s.id)}">
+    <span class="dot ${s.health}" title="健檢：${HEALTH[s.health]}"></span>
+    <span><div class="name">${esc(s.name || s.folder)}${showCategory ? `<span class="tag">${esc(s.category)}</span>` : ''}${s.thirdParty ? '<span class="tag">第三方</span>' : ''}</div>
+      <div class="sum">${top ? `常用於 ${esc(top.name)}・` : ''}${esc(s.summary)}</div></span>
+    <span>${secBadge(s)}</span>
+    <span class="ver">${esc(s.version || '—')}</span>
+    <span class="sparkcell">${spark(s.usage?.weekly)}</span>
+    <span class="last">${ago(s.usage?.lastUsed)}</span>
+  </div>`;
+}
+
 function renderList() {
   const rows = R.skills.filter(matches).sort(sorters[state.sort]);
-  const el = document.getElementById('list');
-  if (!rows.length) { el.innerHTML = '<div class="empty">沒有符合條件的 skill</div>'; return; }
-  el.innerHTML = `<div class="row head"><span></span><span>Skill</span><span>版本</span><span class="sparkcell">近 26 週使用</span><span class="last">最後使用</span></div>` + rows.map((s) => `
-    <div class="row" role="listitem" tabindex="0" data-id="${esc(s.id)}">
-      <span class="dot ${s.health}" title="${HEALTH[s.health]}"></span>
-      <span><div class="name">${esc(s.name || s.folder)}${s.upstream ? '<span class="tag">第三方</span>' : ''}${s.layer ? `<span class="tag">${esc(s.layer)}</span>` : ''}</div><div class="sum">${esc(s.summary)}</div></span>
-      <span class="ver">${esc(s.version || '—')}</span>
-      <span class="sparkcell">${spark(s.usage?.weekly)}</span>
-      <span class="last">${ago(s.usage?.lastUsed)}</span>
-    </div>`).join('');
+  document.getElementById('list').innerHTML = rows.length ? HEAD + rows.map((s) => rowHtml(s)).join('') : '<div class="empty">沒有符合條件的 skill</div>';
+  // 依分類
+  const groups = R.categories.map((c) => [c, rows.filter((s) => s.category === c)]).filter(([, l]) => l.length);
+  document.getElementById('view-categories').innerHTML = groups.length ? groups.map(([c, l]) => `
+    <h2 class="group-title">${esc(c)} <small>${l.length} 個・近 30 天用到 ${l.filter((s) => used(s, 30)).length} 個</small></h2>
+    <div class="list" role="list">${HEAD}${l.map((s) => rowHtml(s, false)).join('')}</div>`).join('')
+    : '<div class="list"><div class="empty">沒有符合條件的 skill</div></div>';
+}
+
+function renderProjects() {
+  const el = document.getElementById('view-projects');
+  if (!R.projects.length) { el.innerHTML = `<div class="list"><div class="empty">${anyUsage ? '使用紀錄裡沒有專案資訊' : '沒有收集到使用紀錄'}</div></div>`; return; }
+  el.innerHTML = `<p style="color:var(--muted);font-size:13px;margin:0 0 12px">依使用 skill 時所在的資料夾判斷專案（往上找到的 git repo 名稱）。點 skill 看詳細資料；虛線框是不在來源 repo 裡的 skill。</p>
+  <div class="projects">${R.projects.map((p) => `
+    <div class="card proj">
+      <h2>${esc(p.name)}</h2>
+      <div class="stats">${p.total} 次・${p.skills.length} 個 skill・最後 ${ago(p.lastUsed)}・${Object.entries(p.platforms).map(([k, v]) => `${esc(pname(k))} ${v}`).join('、')}</div>
+      <div class="pills">${p.skills.map((s) => {
+        const sk = byName.get(s.name);
+        return sk ? `<button class="pill" type="button" data-id="${esc(sk.id)}" title="${esc(sk.category)}・最後 ${day(s.lastUsed)}">${esc(s.name)}<b>${s.count}</b></button>`
+          : `<span class="pill unmanaged" title="不在來源 repo 裡">${esc(s.name)}<b>${s.count}</b></span>`;
+      }).join('')}</div>
+    </div>`).join('')}</div>`;
+}
+
+function renderSetup() {
+  const st = R.setup;
+  const usageRows = st.usage.map((u) => `<dt>${esc(pname(u.platform))}</dt><dd>${u.enabled
+    ? `${u.events ? `<span class="ok-t">✓ ${u.events} 筆</span>` : `<span class="warn-t">還沒有資料</span>`}・<span class="mono">${esc(u.path)}</span>${u.import ? '（匯入檔）' : ''}`
+    : '未啟用'}</dd>`).join('');
+  const reviewedCount = R.skills.filter((s) => s.security.status !== 'none').length;
+  document.getElementById('view-setup').innerHTML = `
+  <div class="grid2">
+    <div class="card">
+      <h2>目前設定</h2>
+      <p class="sub">設定檔只在你的電腦上，不會被 commit。改完設定後重新執行 build。</p>
+      <dl>
+        <dt>設定檔</dt><dd class="mono">${esc(st.configFile)}</dd>
+        ${st.sources.map((s) => `<dt>來源：${esc(s.name)}</dt><dd class="mono">${esc(s.path)}</dd>`).join('')}
+        ${usageRows}
+        <dt>分類</dt><dd>${st.categoriesMode === 'config' ? '設定檔 categories 對照表（沒列到的用關鍵字自動判斷）' : '依關鍵字自動判斷（可在設定檔 categories 指定）'}</dd>
+        <dt>資安審查紀錄</dt><dd>${st.securityReviews.records} 筆，涵蓋 ${reviewedCount} 個 skill・<span class="mono">${esc(st.securityReviews.path)}</span></dd>
+        <dt>輸出位置</dt><dd class="mono">${esc(st.outDir)}</dd>
+      </dl>
+      ${R.notes.length ? `<h3 style="font-size:13px;color:var(--muted);margin:16px 0 6px">提醒</h3><ul class="issues">${R.notes.map((n) => `<li class="warn">${esc(n)}</li>`).join('')}</ul>` : ''}
+    </div>
+    <div class="card">
+      <h2>使用說明</h2>
+      <p class="sub">在 skill-hub 資料夾的終端機執行</p>
+      <ol>
+        <li><b>重新設定路徑</b>：會偵測你電腦上的 skill 資料夾與紀錄，一步步問你<pre>node bin/skill-hub.mjs init</pre></li>
+        <li><b>更新這個畫面</b><pre>node bin/skill-hub.mjs build --open</pre></li>
+        <li><b>改完 skill、推送前</b>：列出要處理的問題<pre>node bin/skill-hub.mjs check</pre></li>
+        <li><b>做完資安審查後記一筆</b>：照你的審查流程逐份讀完再記<pre>node bin/skill-hub.mjs review &lt;skill&gt; --result pass</pre>只審了部分內容加 <code>--scope partial</code>；審查後 skill 又被修改，狀態會自動變成「需重審」。</li>
+        <li><b>其他平台（例如 Grok Bot）</b>：讓它每用一次 skill 就在匯入檔寫一行<pre>{"ts":"2026-10-31T09:00:00Z","skill":"skill 名稱","platform":"grok-bot"}</pre></li>
+      </ol>
+    </div>
+  </div>`;
 }
 
 function renderSide() {
@@ -291,6 +428,26 @@ function renderSide() {
     : '<tr><td>沒有</td><td></td></tr>';
 }
 
+function securityHtml(s) {
+  const sec = s.security;
+  const r = sec.review;
+  const scan = sec.scan;
+  const lines = [];
+  if (r) {
+    lines.push(`<dt>結果</dt><dd>${secBadge(s)} ${r.result === 'pass' ? '通過' : '未通過'}・${r.scope === 'partial' ? '部分審查' : '完整審查'}</dd>`);
+    lines.push(`<dt>日期</dt><dd>${esc(r.date)}${r.version ? `・當時版本 ${esc(r.version)}` : ''}${r.ref ? `・上游 <span class="mono">${esc(r.ref)}</span>` : ''}</dd>`);
+    if (r.note) lines.push(`<dt>說明</dt><dd>${esc(r.note)}</dd>`);
+    if (sec.changedSince) lines.push(`<dt>之後</dt><dd class="warn-t">審查後又修改了 ${sec.changedSince} 次，需要重新審查</dd>`);
+    if (sec.history.length > 1) lines.push(`<dt>歷次</dt><dd>${sec.history.map((h) => `${esc(h.date)} ${h.result === 'pass' ? '通過' : '未通過'}`).join('、')}</dd>`);
+  } else {
+    lines.push(`<dt>結果</dt><dd>${secBadge(s)} ${s.thirdParty ? '第三方 skill，建議照審查流程檢查後再用' : '自建 skill，沒有審查紀錄'}</dd>`);
+  }
+  const scripts = scan.scripts.length ? scan.scripts.map((x) => `<span class="mono">${esc(x.file)}</span>${x.risks.length ? `（${x.risks.join('、')}）` : ''}`).join('<br>') : '沒有腳本';
+  lines.push(`<dt>自動掃描</dt><dd>密鑰 ${scan.secrets.length ? `<span class="warn-t">${scan.secrets.length} 個檔案</span>` : '無'}・隱藏字元 ${scan.hidden.length ? `<span class="warn-t">${scan.hidden.length} 個檔案</span>` : '無'}</dd>`);
+  lines.push(`<dt>腳本</dt><dd>${scripts}</dd>`);
+  return `<h3>資安</h3><dl class="kv">${lines.join('')}</dl><p style="color:var(--muted);font-size:12px;margin:6px 0 0">自動掃描只是初篩，「已檢查」以人工審查紀錄為準。</p>`;
+}
+
 function openDrawer(id) {
   const s = R.skills.find((x) => x.id === id);
   if (!s) return;
@@ -303,7 +460,7 @@ function openDrawer(id) {
   d.innerHTML = `
     <button class="ghost close" type="button" data-close>關閉</button>
     <h2>${esc(s.name || s.folder)}</h2>
-    <div style="color:var(--muted);font-size:13px">${esc(s.source)} / ${esc(s.relPath)}・v${esc(s.version || '?')}・${HEALTH[s.health]}</div>
+    <div style="color:var(--muted);font-size:13px">${esc(s.category)}（${CAT_SOURCE[s.categorySource]}）・${s.thirdParty ? '第三方' : '自建'}・v${esc(s.version || '?')}・健檢${HEALTH[s.health]}</div>
 
     ${s.issues.length ? `<h3>健檢</h3><ul class="issues">${s.issues.map((i) => `<li class="${i.level}">${esc(i.message)}</li>`).join('')}</ul>` : ''}
 
@@ -318,8 +475,10 @@ function openDrawer(id) {
     ${u ? `${spark(u.weekly, 500, 40).replace('class="spark"', 'class="spark" style="max-width:100%"')}
       <div class="plat" style="margin-top:10px">${Object.entries(u.platforms).map(([k, v]) => `<span>${esc(pname(k))}</span><span>${v.count} 次</span><span class="m">最後 ${day(v.last)}</span>`).join('')}</div>
       <dl class="kv" style="margin-top:10px"><dt>近 30／90 天</dt><dd>${u.last30}／${u.last90} 次</dd><dt>累計</dt><dd>${u.total} 次</dd>
-      ${u.projects.length ? `<dt>常用專案</dt><dd>${u.projects.map((p) => `${esc(p.name)}（${p.count}）`).join('、')}</dd>` : ''}</dl>`
+      ${u.projects.length ? `<dt>用在哪些專案</dt><dd>${u.projects.map((p) => `${esc(p.name)}（${p.count}）`).join('、')}</dd>` : ''}</dl>`
       : `<div style="color:var(--muted);font-size:13px">${anyUsage ? '統計範圍內沒有使用紀錄' : '沒有收集到使用紀錄'}</div>`}
+
+    ${securityHtml(s)}
 
     ${versions ? `<h3>版本紀錄</h3><ul class="timeline">${versions}</ul>` : ''}
 
@@ -329,6 +488,7 @@ function openDrawer(id) {
 
     <h3>檔案</h3>
     <dl class="kv">
+      <dt>位置</dt><dd class="mono">${esc(s.source)} / ${esc(s.relPath)}</dd>
       <dt>本文</dt><dd>${s.bodyLines} 行・共 ${s.fileCount} 個檔案${s.folders.length ? `（${s.folders.join('、')}）` : ''}</dd>
       <dt>最後修改</dt><dd>${day(s.lastModified)}${s.uncommitted ? `・${s.uncommitted} 個檔案未 commit` : ''}</dd>
       ${s.upstream ? `<dt>上游</dt><dd><a href="${esc(s.upstream)}" target="_blank" rel="noopener noreferrer">${esc(s.upstream)}</a></dd><dt>對齊 commit</dt><dd class="mono">${esc(s.upstreamCommit || '—')}</dd>` : ''}
@@ -349,15 +509,25 @@ function closeDrawer() {
   history.replaceState(null, '', location.pathname + location.search);
 }
 
+function setView(v) {
+  state.view = v;
+  for (const t of document.querySelectorAll('.tab')) t.setAttribute('aria-selected', String(t.dataset.view === v));
+  for (const id of ['skills', 'categories', 'projects', 'setup']) document.getElementById(`view-${id}`).hidden = id !== v;
+  document.getElementById('filters').hidden = !['skills', 'categories'].includes(v);
+  document.getElementById('more').hidden = v === 'setup';
+  try { localStorage.setItem('skillhub.view', v); } catch {}
+}
+
 // ---- 事件 ----
-function setFilter(f) { state.filter = f; renderChips(); renderList(); }
+function refresh() { renderChips(); renderList(); }
 document.addEventListener('click', (e) => {
-  const t = e.target.closest('[data-filter],[data-rule],[data-id],[data-close],[data-copy]');
+  const t = e.target.closest('[data-filter],[data-rule],[data-id],[data-close],[data-copy],[data-view]');
   if (!t) return;
   if (t.dataset.copy !== undefined) { navigator.clipboard?.writeText(t.dataset.copy); t.textContent = '已複製'; setTimeout(() => (t.textContent = '複製'), 1200); return; }
   if (t.dataset.close !== undefined) return closeDrawer();
-  if (t.dataset.rule !== undefined) { e.preventDefault(); state.rule = t.dataset.rule; state.filter = 'all'; renderChips(); renderList(); if (state.rule) document.getElementById('list').scrollIntoView({ behavior: 'smooth' }); return; }
-  if (t.dataset.filter !== undefined) return setFilter(t.dataset.filter);
+  if (t.dataset.view) return setView(t.dataset.view);
+  if (t.dataset.rule !== undefined) { e.preventDefault(); state.rule = t.dataset.rule; state.filter = 'all'; if (!['skills', 'categories'].includes(state.view)) setView('skills'); refresh(); if (state.rule) document.getElementById('tabs').scrollIntoView({ behavior: 'smooth' }); return; }
+  if (t.dataset.filter !== undefined) { state.filter = t.dataset.filter; if (!['skills', 'categories'].includes(state.view)) setView('skills'); return refresh(); }
   if (t.dataset.id) openDrawer(t.dataset.id);
 });
 document.addEventListener('keydown', (e) => {
@@ -368,6 +538,7 @@ document.getElementById('scrim').addEventListener('click', closeDrawer);
 document.getElementById('q').addEventListener('input', (e) => { state.q = e.target.value.trim(); renderList(); });
 document.getElementById('sort').addEventListener('change', (e) => { state.sort = e.target.value; try { localStorage.setItem('skillhub.sort', state.sort); } catch {} renderList(); });
 document.getElementById('source').addEventListener('change', (e) => { state.source = e.target.value; renderList(); });
+document.getElementById('category').addEventListener('change', (e) => { state.category = e.target.value; renderList(); });
 document.getElementById('theme').addEventListener('click', () => {
   const root = document.documentElement;
   const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
@@ -375,12 +546,15 @@ document.getElementById('theme').addEventListener('click', () => {
   try { localStorage.setItem('skillhub.theme', root.dataset.theme); } catch {}
 });
 
+let initialView = 'skills';
 try {
   const th = localStorage.getItem('skillhub.theme'); if (th) document.documentElement.dataset.theme = th;
   const so = localStorage.getItem('skillhub.sort'); if (so && sorters[so]) state.sort = so;
+  const vw = localStorage.getItem('skillhub.view'); if (['skills', 'categories', 'projects', 'setup'].includes(vw)) initialView = vw;
 } catch {}
 document.getElementById('sort').value = state.sort;
-renderTop(); renderChips(); renderList(); renderSide();
+renderTop(); refresh(); renderProjects(); renderSetup(); renderSide();
+setView(initialView);
 if (location.hash) openDrawer(decodeURIComponent(location.hash.slice(1)));
 </script>
 </body>

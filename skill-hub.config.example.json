@@ -1,5 +1,5 @@
 {
-  "$comment": "複製成 skill-hub.config.json 再修改（該檔不進版控）。路徑可用 ~ 代表家目錄。",
+  "$comment": "建議用 skill-hub init 產生設定檔；也可以複製成 skill-hub.config.json 手動修改（該檔不進版控）。路徑可用 ~ 代表家目錄。",
   "sources": [
     { "name": "my-skills", "path": "~/dev/skills" }
   ],
@@ -10,6 +10,15 @@
       { "platform": "grok-bot", "file": "usage/grok-bot.jsonl" }
     ]
   },
+  "categories": {
+    "行銷": ["meeting-notes"],
+    "開發": ["release-checklist"]
+  },
+  "projects": {
+    "roots": [],
+    "aliases": { "my-shop-v2": "my-shop" }
+  },
+  "securityReviews": "data/security-reviews.json",
   "checks": {
     "unusedDays": 60,
     "descriptionMax": 1024,

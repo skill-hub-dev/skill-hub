@@ -10,6 +10,7 @@
       { "platform": "import", "file": "demo-usage.jsonl" }
     ]
   },
+  "securityReviews": "demo-reviews.json",
   "checks": { "unusedDays": 60 },
   "outDir": "../out/demo"
 }

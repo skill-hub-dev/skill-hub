@@ -4,7 +4,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { createCategorizer } from '../src/categories.mjs';
 import { loadConfig } from '../src/config.mjs';
+import { createProjectResolver } from '../src/projects.mjs';
+import { reviewStatus, scanSkillDir } from '../src/security.mjs';
+import { buildConfig } from '../src/setup.mjs';
 import { parseSkillFile } from '../src/frontmatter.mjs';
 import { renderDashboard } from '../src/render.mjs';
 import { buildReport } from '../src/report.mjs';
@@ -60,7 +64,7 @@ test('Claude Code 紀錄：Skill 呼叫與斜線指令，去重並略過內建�
   fs.writeFileSync(path.join(dir, 'p', 's.jsonl'), lines.map((l) => JSON.stringify(l)).join('\n') + '\n{broken');
   const ev = claudeCodeEvents(dir);
   assert.equal(ev.length, 2);
-  assert.deepEqual(ev.map((e) => [e.skill, e.project]), [['demo', 'proj'], ['demo', 'other']]);
+  assert.deepEqual(ev.map((e) => [e.skill, e.cwd]), [['demo', 'C:\\work\\proj'], ['demo', '/x/other']]);
 });
 
 test('Codex 紀錄：從工具呼叫參數找 SKILL.md 路徑，忽略 skill 清單訊息', () => {
@@ -73,7 +77,7 @@ test('Codex 紀錄：從工具呼叫參數找 SKILL.md 路徑，忽略 skill 清
   ];
   fs.writeFileSync(path.join(dir, 'rollout-1.jsonl'), lines.map((l) => JSON.stringify(l)).join('\n'));
   const ev = codexEvents(dir);
-  assert.deepEqual(ev.map((e) => [e.skill, e.project]), [['demo', 'proj']]);
+  assert.deepEqual(ev.map((e) => [e.skill, e.cwd]), [['demo', 'C:\\work\\proj']]);
 });
 
 test('使用量彙整：近 30 天、每週桶、平台', () => {
@@ -100,8 +104,75 @@ test('示範設定：完整報告與健檢', () => {
   const codes = (n) => by[n].issues.map((i) => i.code);
   assert.ok(codes('tone-polisher').includes('missing-source-commit'));
   assert.ok(codes('tone-polisher').includes('unused'));
+  assert.ok(codes('tone-polisher').includes('not-reviewed'));
   assert.deepEqual(r.unmanaged.map((u) => u.name), ['pdf']);
   assert.ok(!('absPath' in by['meeting-notes']));
+  // 分類：SKILL.md 指定、關鍵字自動判斷、判斷不出來
+  assert.deepEqual([by['meeting-notes'].category, by['meeting-notes'].categorySource], ['管理', 'skill']);
+  assert.deepEqual([by['release-checklist'].category, by['release-checklist'].categorySource], ['開發', 'auto']);
+  assert.equal(by['tone-polisher'].category, '未分類');
+  assert.equal(r.categories.at(-1), '未分類');
+  // 專案：匯入檔裡的 project 欄位
+  assert.deepEqual(r.projects.map((p) => p.name).sort(), ['demo-app', 'handbook']);
+  assert.equal(r.projects.find((p) => p.name === 'demo-app').skills.find((s) => s.name === 'pdf').managed, false);
+});
+
+test('分類：設定檔優先於關鍵字；英文短詞要整字相符', () => {
+  const cat = createCategorizer({ categories: { 行銷: ['a'] }, categoryRules: { 社群: ['ig'], 設計: ['design'] } });
+  const skill = (o) => ({ name: 'x', folder: 'x', triggers: [], description: '', categoryMeta: null, ...o });
+  assert.deepEqual(cat(skill({ name: 'a' })), { category: '行銷', source: 'config' });
+  assert.deepEqual(cat(skill({ categoryMeta: '自訂', name: 'a' })), { category: '自訂', source: 'skill' });
+  assert.equal(cat(skill({ description: 'UI design helper' })).category, '設計');
+  assert.equal(cat(skill({ description: 'IG 貼文' })).category, '社群');
+});
+
+test('專案：worktree 歸回原專案、暫存區、指定根目錄', () => {
+  const base = path.resolve(path.sep, 'skill-hub-test-nope');
+  const resolve = createProjectResolver({ roots: [path.join(base, 'roots')] });
+  assert.equal(resolve(path.join(base, 'shop', '.claude', 'worktrees', 'brave-cat-123')), 'shop');
+  assert.equal(resolve('/home/u/.codex/worktrees/ab12/my-repo/src'), 'my-repo');
+  assert.equal(resolve('C:\\Users\\u\\AppData\\Roaming\\Claude\\scratch-workspaces\\x\\y'), '（暫存工作區）');
+  assert.equal(resolve(path.join(base, 'roots', 'site', 'src', 'app')), 'site');
+});
+
+test('資安狀態：已檢查、部分、審查後有修改、未通過、未檢查', () => {
+  const skill = { name: 's', folder: 's', commits: [{ date: '2026-10-20T10:00:00Z' }], uncommitted: 0 };
+  const st = (reviews, s = skill) => reviewStatus(s, reviews).status;
+  assert.equal(st([]), 'none');
+  assert.equal(st([{ skill: 's', date: '2026-10-20', result: 'pass' }]), 'passed'); // 同一天的修改算在審查內
+  assert.equal(st([{ skill: 's', date: '2026-10-21', result: 'pass', scope: 'partial' }]), 'partial');
+  assert.equal(st([{ skill: 's', date: '2026-10-19', result: 'pass' }]), 'stale');
+  assert.equal(st([{ skill: 's', date: '2026-10-19', result: 'pass' }, { skill: 's', date: '2026-10-22', result: 'fail' }]), 'failed');
+  assert.equal(st([{ skill: 's', date: '2026-10-21', result: 'pass' }], { ...skill, uncommitted: 2 }), 'stale');
+});
+
+test('設定檔：開頭有 BOM 也讀得到；JSON 壞掉時給看得懂的錯誤', () => {
+  const dir = tmp();
+  const file = path.join(dir, 'c.json');
+  fs.writeFileSync(file, String.fromCharCode(0xfeff) + JSON.stringify({ sources: [{ path: dir }] }));
+  assert.equal(loadConfig(file).sources[0].path, dir);
+  fs.writeFileSync(file, '{ "sources": [ }');
+  assert.throws(() => loadConfig(file), /不是正確的 JSON/);
+});
+
+test('自動掃描：隱藏字元、腳本的連網與執行', () => {
+  const dir = tmp();
+  fs.writeFileSync(path.join(dir, 'SKILL.md'), `# x${String.fromCharCode(0x200b)}`);
+  fs.mkdirSync(path.join(dir, 'scripts'));
+  fs.writeFileSync(path.join(dir, 'scripts', 'a.mjs'), "import { exec } from 'node:child_process'; exec('ls'); fetch('https://x');");
+  const r = scanSkillDir(dir);
+  assert.deepEqual(r.hidden, ['SKILL.md']);
+  assert.deepEqual(r.scripts, [{ file: 'scripts/a.mjs', risks: ['連網', '執行其他程式'] }]);
+});
+
+test('首次設定：建議設定檔用 ~ 表示家目錄、名稱不重複', () => {
+  const home = os.homedir();
+  const cfg = buildConfig({
+    sources: [{ path: path.join(home, 'dev', 'skills') }, { path: path.join(home, 'other', 'skills') }],
+    usage: { claudeCode: true, codex: false },
+  });
+  assert.deepEqual(cfg.sources, [{ name: 'skills', path: '~/dev/skills' }, { name: 'skills-2', path: '~/other/skills' }]);
+  assert.equal(cfg.usage.codex.enabled, false);
 });
 
 test('儀表板：資料內嵌時跳脫 </script>', () => {

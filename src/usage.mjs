@@ -25,10 +25,11 @@ function* lines(file, mustInclude) {
 /** "anthropic-skills:dev-standard" → "dev-standard" */
 export const normalizeSkill = (s) => String(s).trim().replace(/^\//, '').split(':').pop();
 
-const projectName = (cwd) => {
+/** cwd 可能是一般路徑或 file:///D:/x%20y 這種網址，統一成路徑；專案名稱由 projects.mjs 判斷 */
+export const cwdPath = (cwd) => {
   if (!cwd) return null;
   const s = String(cwd).replace(/^file:\/\/\/?/, '');
-  try { return path.basename(decodeURIComponent(s)); } catch { return path.basename(s); }
+  try { return decodeURIComponent(s); } catch { return s; }
 };
 
 // Claude Code 內建的斜線指令，不是 skill
@@ -41,7 +42,7 @@ export function claudeCodeEvents(dir) {
   const events = [];
   for (const file of walkJsonl(dir)) {
     for (const o of lines(file, ['"name":"Skill"', '<command-name>'])) {
-      const base = { platform: 'claude-code', ts: o.timestamp, session: o.sessionId || path.basename(file, '.jsonl'), project: projectName(o.cwd) };
+      const base = { platform: 'claude-code', ts: o.timestamp, session: o.sessionId || path.basename(file, '.jsonl'), cwd: cwdPath(o.cwd) };
       const content = o.message?.content;
       if (o.type === 'assistant' && Array.isArray(content)) {
         for (const c of content) {
@@ -76,20 +77,20 @@ export function codexEvents(dir) {
       if (o.type !== 'response_item' || !CODEX_CALL.has(o.payload?.type)) continue;
       const args = JSON.stringify(o.payload);
       for (const m of args.matchAll(SKILL_PATH)) {
-        events.push({ platform: 'codex', skill: m[1], ts: o.timestamp, session, project: projectName(cwd) });
+        events.push({ platform: 'codex', skill: m[1], ts: o.timestamp, session, cwd: cwdPath(cwd) });
       }
     }
   }
   return dedupe(events, Infinity); // 同一個 session 讀幾次都算用了一次
 }
 
-// ---- 匯入檔（Grok Bot 或任何平台）：每行一筆 {"ts","skill","platform","session","project"} ----
+// ---- 匯入檔（Grok Bot 或任何平台）：每行一筆 {"ts","skill","platform","session","project"|"cwd"} ----
 export function importEvents({ file, platform }) {
   const events = [];
   if (!fs.existsSync(file)) return { events, missing: true };
   for (const o of lines(file)) {
     if (!o.skill || !o.ts || Number.isNaN(Date.parse(o.ts))) continue;
-    events.push({ platform: o.platform || platform || 'import', skill: normalizeSkill(o.skill), ts: o.ts, session: o.session ?? null, project: o.project ?? null });
+    events.push({ platform: o.platform || platform || 'import', skill: normalizeSkill(o.skill), ts: o.ts, session: o.session ?? null, project: o.project ?? null, cwd: cwdPath(o.cwd) });
   }
   return { events, missing: false };
 }

@@ -101,6 +101,7 @@ export function scanSource(source) {
       version: meta.version ?? fm.version ?? null,
       license: fm.license ?? null,
       layer: meta.layer ?? null,
+      categoryMeta: meta.category ?? null,
       upstream: meta.source ?? null,
       upstreamCommit: meta.source_commit ?? null,
       changelog: parseChangelog(meta.changelog),
