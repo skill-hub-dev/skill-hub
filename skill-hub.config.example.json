@@ -1,0 +1,20 @@
+{
+  "$comment": "複製成 skill-hub.config.json 再修改（該檔不進版控）。路徑可用 ~ 代表家目錄。",
+  "sources": [
+    { "name": "my-skills", "path": "~/dev/skills" }
+  ],
+  "usage": {
+    "claudeCode": { "enabled": true, "dir": "~/.claude/projects" },
+    "codex": { "enabled": true, "dir": "~/.codex/sessions" },
+    "imports": [
+      { "platform": "grok-bot", "file": "usage/grok-bot.jsonl" }
+    ]
+  },
+  "checks": {
+    "unusedDays": 60,
+    "descriptionMax": 1024,
+    "bodyMaxLines": 500,
+    "remote": false
+  },
+  "outDir": "out"
+}

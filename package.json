@@ -1,0 +1,19 @@
+{
+  "name": "skill-hub",
+  "version": "0.1.0",
+  "description": "管理 Agent Skills 正本 repo 的本機儀表板：版本紀錄、用途、觸發指令、健檢與近期使用量",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "skill-hub": "bin/skill-hub.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node bin/skill-hub.mjs build",
+    "check": "node bin/skill-hub.mjs check",
+    "demo": "node bin/skill-hub.mjs build --config examples/demo.config.json",
+    "test": "node --test \"test/*.test.mjs\""
+  }
+}

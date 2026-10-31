@@ -1,0 +1,10 @@
+# 個人資料：你的 skill 清單、版本與使用紀錄只留在本機
+skill-hub.config.json
+out/
+usage/*.jsonl
+
+# 本機工作紀錄
+.claude/
+
+node_modules/
+.DS_Store

@@ -1,0 +1,15 @@
+{
+  "$comment": "示範用：只讀 examples/ 裡的假資料，不碰你的本機紀錄。npm run demo",
+  "sources": [
+    { "name": "demo", "path": "demo-skills" }
+  ],
+  "usage": {
+    "claudeCode": { "enabled": false },
+    "codex": { "enabled": false },
+    "imports": [
+      { "platform": "import", "file": "demo-usage.jsonl" }
+    ]
+  },
+  "checks": { "unusedDays": 60 },
+  "outDir": "../out/demo"
+}
