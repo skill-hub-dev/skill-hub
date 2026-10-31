@@ -42,6 +42,21 @@ export function parseChangelog(s) {
   }).filter((c) => c.note);
 }
 
+/**
+ * 來源資訊：作者取 metadata.author；第三方沒寫作者時，從 GitHub 網址取帳號名稱
+ * 回傳 { kind: 'third' | 'own', author, url, name }
+ */
+export function sourceInfo({ upstream, author, license, hasLicenseFile }) {
+  const third = !!(upstream || license || hasLicenseFile);
+  const gh = typeof upstream === 'string' ? upstream.match(/^https?:\/\/(?:www\.)?github\.com\/([^/\s]+)\/([^/\s#?]+)/i) : null;
+  return {
+    kind: third ? 'third' : 'own',
+    author: author || (gh ? gh[1] : null),
+    url: upstream || null,
+    name: gh ? `${gh[1]}/${gh[2].replace(/\.git$/, '')}` : upstream || null,
+  };
+}
+
 function countFiles(dir) {
   let n = 0;
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -104,6 +119,12 @@ export function scanSource(source) {
       categoryMeta: meta.category ?? null,
       upstream: meta.source ?? null,
       upstreamCommit: meta.source_commit ?? null,
+      origin: sourceInfo({
+        upstream: meta.source ?? null,
+        author: meta.author ?? fm.author ?? null,
+        license: fm.license ?? null,
+        hasLicenseFile: fs.existsSync(path.join(dir, 'LICENSE')),
+      }),
       changelog: parseChangelog(meta.changelog),
       triggers: extractTriggers(description),
       command: `/${fm.name || path.basename(dir)}`,

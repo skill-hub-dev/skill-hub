@@ -63,7 +63,7 @@ node bin/skill-hub.mjs build --open
 | 未通過 | 最近一次審查沒通過 |
 | 未檢查 | 沒有審查紀錄；第三方 skill 會用警告色標示 |
 
-點任一個 skill 會打開詳細面板：用途、可複製的指令、觸發詞、使用狀況與專案、資安、版本紀錄、最近修改、章節大綱。
+點任一個 skill 會打開詳細面板：來源（自建或第三方、作者、來源連結、對齊版本、授權）、用途、可複製的指令、觸發詞、使用狀況與專案、資安、版本紀錄、最近修改、章節大綱。清單上的第三方 skill 會標成「第三方・作者」。
 
 ## 指令
 
@@ -132,7 +132,7 @@ skill 的文字會變成模型的指令，腳本會在你的電腦上執行，�
    node bin/skill-hub.mjs review some-skill --result pass --ref <上游 commit> --note "逐份讀完，腳本只讀本機檔案"
    ```
 
-   只審查了部分內容加 `--scope partial`；補登過去的審查加 `--date 2026-10-25`（會自動找出當天的版本）。審查之後 skill 又被修改，狀態會自動變成「需重審」。
+   紀錄會自動帶上 skill 的來源連結與作者。只審查了部分內容加 `--scope partial`；補登過去的審查加 `--date 2026-10-25`（會自動找出當天的版本）。審查之後 skill 又被修改，狀態會自動變成「需重審」。
 
 2. **自動初篩**：每次 build 都會掃描每個 skill 資料夾的密鑰格式、隱藏字元（零寬、雙向控制、tag 字元），以及腳本裡的連網、執行其他程式、寫檔或刪檔。初篩有結果不代表有問題，沒結果也不代表安全，「已檢查」只以人工審查紀錄為準。
 
@@ -160,6 +160,7 @@ license: MIT                       # 第三方 skill 才需要
 metadata:
   version: "1.2.0"
   category: 管理                    # 選填：在儀表板的分類
+  author: example                   # 第三方 skill 的作者；沒寫時從 source 的 GitHub 網址取帳號
   source: https://github.com/<owner>/<repo>   # 第三方 skill 才需要
   source_commit: <commit hash>
   changelog: "1.2.0: 新增負責人欄位 | 1.0.0: 初版"

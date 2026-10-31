@@ -241,7 +241,7 @@ const RULE = {
   'no-frontmatter': '缺 frontmatter', 'missing-name': '缺 name', 'name-mismatch': 'name 與資料夾不同', 'not-kebab': '資料夾非 kebab-case',
   'missing-description': '缺 description', 'description-too-long': 'description 過長', 'no-triggers': '沒有觸發關鍵字',
   'missing-version': '缺版本號', 'bad-version': '版本號格式錯', 'body-too-long': '本文過長', 'missing-source': '第三方缺 source',
-  'missing-source-commit': '第三方缺 source_commit', 'missing-license': '第三方缺 license', secret: '疑似含密鑰',
+  'missing-source-commit': '第三方缺 source_commit', 'missing-license': '第三方缺 license', 'missing-author': '第三方缺作者', secret: '疑似含密鑰',
   'hidden-chars': '含隱藏字元', 'review-failed': '資安審查未通過', 'review-stale': '資安審查後有修改', 'not-reviewed': '第三方未做資安審查',
   'risky-scripts': '腳本含連網／執行／寫檔', 'no-bump': '改了沒升版號', uncommitted: '有未 commit 修改', 'changelog-stale': 'changelog 沒跟上',
   'never-used': '從未使用', unused: '久未使用', 'trigger-overlap': '觸發詞重疊', 'duplicate-name': '名稱重複',
@@ -345,7 +345,7 @@ function rowHtml(s, showCategory = true) {
   const top = s.usage?.projects?.find((p) => !p.name.startsWith('（'));
   return `<div class="row" role="listitem" tabindex="0" data-id="${esc(s.id)}">
     <span class="dot ${s.health}" title="健檢：${HEALTH[s.health]}"></span>
-    <span><div class="name">${esc(s.name || s.folder)}${showCategory ? `<span class="tag">${esc(s.category)}</span>` : ''}${s.thirdParty ? '<span class="tag">第三方</span>' : ''}</div>
+    <span><div class="name">${esc(s.name || s.folder)}${showCategory ? `<span class="tag">${esc(s.category)}</span>` : ''}${s.thirdParty ? `<span class="tag" title="${esc(s.origin.url || '')}">第三方・${esc(s.origin.author || '作者未知')}</span>` : ''}</div>
       <div class="sum">${top ? `常用於 ${esc(top.name)}・` : ''}${esc(s.summary)}</div></span>
     <span>${secBadge(s)}</span>
     <span class="ver">${esc(s.version || '—')}</span>
@@ -436,6 +436,7 @@ function securityHtml(s) {
   if (r) {
     lines.push(`<dt>結果</dt><dd>${secBadge(s)} ${r.result === 'pass' ? '通過' : '未通過'}・${r.scope === 'partial' ? '部分審查' : '完整審查'}</dd>`);
     lines.push(`<dt>日期</dt><dd>${esc(r.date)}${r.version ? `・當時版本 ${esc(r.version)}` : ''}${r.ref ? `・上游 <span class="mono">${esc(r.ref)}</span>` : ''}</dd>`);
+    if (r.source || r.author) lines.push(`<dt>審查對象</dt><dd>${esc(r.author || '作者未知')}・${r.source ? `<a href="${esc(r.source)}" target="_blank" rel="noopener noreferrer">${esc(r.source)}</a>` : '自建'}</dd>`);
     if (r.note) lines.push(`<dt>說明</dt><dd>${esc(r.note)}</dd>`);
     if (sec.changedSince) lines.push(`<dt>之後</dt><dd class="warn-t">審查後又修改了 ${sec.changedSince} 次，需要重新審查</dd>`);
     if (sec.history.length > 1) lines.push(`<dt>歷次</dt><dd>${sec.history.map((h) => `${esc(h.date)} ${h.result === 'pass' ? '通過' : '未通過'}`).join('、')}</dd>`);
@@ -460,7 +461,16 @@ function openDrawer(id) {
   d.innerHTML = `
     <button class="ghost close" type="button" data-close>關閉</button>
     <h2>${esc(s.name || s.folder)}</h2>
-    <div style="color:var(--muted);font-size:13px">${esc(s.category)}（${CAT_SOURCE[s.categorySource]}）・${s.thirdParty ? '第三方' : '自建'}・v${esc(s.version || '?')}・健檢${HEALTH[s.health]}</div>
+    <div style="color:var(--muted);font-size:13px">${esc(s.category)}（${CAT_SOURCE[s.categorySource]}）・${s.thirdParty ? `第三方・${esc(s.origin.author || '作者未知')}` : '自建'}・v${esc(s.version || '?')}・健檢${HEALTH[s.health]}</div>
+
+    <h3>來源</h3>
+    <dl class="kv">
+      <dt>類型</dt><dd>${s.thirdParty ? '第三方' : '自建'}</dd>
+      <dt>作者</dt><dd>${esc(s.origin.author || (s.thirdParty ? '未知（請在 metadata.author 補上）' : '—'))}</dd>
+      <dt>來源連結</dt><dd>${s.origin.url ? `<a href="${esc(s.origin.url)}" target="_blank" rel="noopener noreferrer">${esc(s.origin.name || s.origin.url)}</a>` : (s.thirdParty ? '<span class="warn-t">未填（請在 metadata.source 補上）</span>' : '—')}</dd>
+      ${s.upstreamCommit ? `<dt>對齊版本</dt><dd class="mono">${esc(String(s.upstreamCommit).slice(0, 7))}</dd>` : ''}
+      ${s.license ? `<dt>授權</dt><dd>${esc(s.license)}</dd>` : ''}
+    </dl>
 
     ${s.issues.length ? `<h3>健檢</h3><ul class="issues">${s.issues.map((i) => `<li class="${i.level}">${esc(i.message)}</li>`).join('')}</ul>` : ''}
 
@@ -491,8 +501,6 @@ function openDrawer(id) {
       <dt>位置</dt><dd class="mono">${esc(s.source)} / ${esc(s.relPath)}</dd>
       <dt>本文</dt><dd>${s.bodyLines} 行・共 ${s.fileCount} 個檔案${s.folders.length ? `（${s.folders.join('、')}）` : ''}</dd>
       <dt>最後修改</dt><dd>${day(s.lastModified)}${s.uncommitted ? `・${s.uncommitted} 個檔案未 commit` : ''}</dd>
-      ${s.upstream ? `<dt>上游</dt><dd><a href="${esc(s.upstream)}" target="_blank" rel="noopener noreferrer">${esc(s.upstream)}</a></dd><dt>對齊 commit</dt><dd class="mono">${esc(s.upstreamCommit || '—')}</dd>` : ''}
-      ${s.license ? `<dt>授權</dt><dd>${esc(s.license)}</dd>` : ''}
     </dl>`;
   d.classList.add('open');
   d.setAttribute('aria-hidden', 'false');

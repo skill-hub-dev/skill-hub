@@ -33,6 +33,7 @@ export function checkSkill(s, ctx) {
     if (!s.upstream) add('warn', 'missing-source', '看起來是第三方 skill，但沒有 metadata.source');
     if (!s.upstreamCommit) add('warn', 'missing-source-commit', '第三方 skill 沒有 metadata.source_commit，無法比對上游更新');
     if (!s.license) add('warn', 'missing-license', '第三方 skill 沒有 license 欄位');
+    if (!s.origin.author) add('warn', 'missing-author', '第三方 skill 沒有作者（metadata.author，或 source 填 GitHub 網址）');
   }
 
   // 資安（scan 與 review 由 report.mjs 先算好）

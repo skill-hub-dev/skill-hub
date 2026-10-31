@@ -147,7 +147,7 @@ const commands = {
       const LABEL = { passed: '✅ 已檢查', partial: '🟦 部分檢查', stale: '⚠️  審查後有修改', failed: '❌ 未通過', none: '・ 未檢查' };
       for (const s of cfg.sources.flatMap((src) => scanSource(src))) {
         const r = reviewStatus(s, reviews);
-        const tp = s.upstream || s.license ? '第三方' : '自建';
+        const tp = s.origin.kind === 'third' ? `第三方・${s.origin.author || '作者未知'}` : '自建';
         console.log(`  ${LABEL[r.status].padEnd(10)} ${(s.name || s.folder).padEnd(34)} ${tp}${r.review ? `  ${r.review.date}${r.changedSince ? `，之後改了 ${r.changedSince} 次` : ''}` : ''}`);
       }
       console.log(`\n審查紀錄：${cfg.securityReviews}（${reviews.length} 筆）`);
@@ -157,7 +157,10 @@ const commands = {
     const skills = cfg.sources.flatMap((src) => scanSource(src));
     const s = skills.find((x) => (x.name || x.folder) === name);
     if (!s) throw new Error(`找不到 skill「${name}」`);
-    const date = args.date || new Date().toISOString().slice(0, 10);
+    // 預設用本機日期（toISOString 是 UTC，台灣早上會記成前一天）
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const date = args.date || today;
     if (Number.isNaN(Date.parse(date))) throw new Error(`日期格式不對：${date}（請用 YYYY-MM-DD）`);
     // 補登過去的審查時，記下當天結束前最後一個 commit 的版本
     const end = Date.parse(`${date}T23:59:59`);
@@ -170,6 +173,9 @@ const commands = {
       version: (args.date ? at?.version : s.version) || s.version || null,
       commit: at?.hash?.slice(0, 7) || null,
       ref: args.ref || null,
+      // 審查對象的來源、作者、連結：之後換來源或作者時看得出審的是哪一份
+      source: s.origin.url,
+      author: s.origin.author,
       note: args.note || null,
     };
     appendReview(cfg.securityReviews, record);

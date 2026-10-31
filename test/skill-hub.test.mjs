@@ -13,7 +13,7 @@ import { buildConfig } from '../src/setup.mjs';
 import { parseSkillFile } from '../src/frontmatter.mjs';
 import { renderDashboard } from '../src/render.mjs';
 import { buildReport } from '../src/report.mjs';
-import { extractTriggers, firstSentence, parseChangelog } from '../src/sources.mjs';
+import { extractTriggers, firstSentence, parseChangelog, sourceInfo } from '../src/sources.mjs';
 import { claudeCodeEvents, codexEvents, summarizeUsage } from '../src/usage.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -200,6 +200,14 @@ test('公開內容檢查：抓到路徑、信箱、敏感詞、禁止檔案、co
   assert.equal(r.code, 1);
   for (const kind of ['敏感詞', '作者信箱', '本機路徑', '信箱', '禁止公開']) assert.match(r.out, new RegExp(kind), `應該抓到：${kind}`);
   assert.match(r.out, /leak\.md@/);
+});
+
+test('來源與作者：metadata.author 優先，第三方從 GitHub 網址取帳號', () => {
+  assert.deepEqual(sourceInfo({ upstream: 'https://github.com/example/tone-polisher.git', license: 'MIT' }),
+    { kind: 'third', author: 'example', url: 'https://github.com/example/tone-polisher.git', name: 'example/tone-polisher' });
+  assert.equal(sourceInfo({ upstream: 'https://github.com/example/x', author: '某作者' }).author, '某作者');
+  assert.deepEqual(sourceInfo({}), { kind: 'own', author: null, url: null, name: null });
+  assert.equal(sourceInfo({ hasLicenseFile: true }).kind, 'third');
 });
 
 test('首次設定：建議設定檔用 ~ 表示家目錄、名稱不重複', () => {
