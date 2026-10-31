@@ -189,6 +189,17 @@ npm run demo
 
 新增平台：在 `src/usage.mjs` 寫一個回傳 `{ platform, skill, ts, session, cwd }` 陣列的函式，接到 `collectUsage`。
 
+## 貢獻與發布
+
+這個 repo 是公開的，任何檔案、測試、commit 都不能帶有個人資訊。推送前請先讀 [docs/publishing-rules.md](docs/publishing-rules.md)，並執行：
+
+```bash
+npm run install-hooks   # 只要做一次：之後每次 git push 都會先自動檢查
+npm run privacy         # 手動檢查：所有歷史版本、準備加入的檔案、commit 身分
+```
+
+你自己的帳號、公司、客戶名稱等，寫在本機的 `.privacy-keywords.local`（不進版控），檢查時會一併比對。
+
 ## 授權
 
 MIT

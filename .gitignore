@@ -1,8 +1,12 @@
-# 個人資料：你的 skill 清單、版本與使用紀錄只留在本機
+# 個人資料：你的 skill 清單、版本、使用與審查紀錄只留在本機（docs/publishing-rules.md 第 2 節）
 skill-hub.config.json
 out/
 usage/*.jsonl
 data/
+.privacy-keywords.local
+*.local
+.env
+.env.*
 
 # 本機工作紀錄
 .claude/

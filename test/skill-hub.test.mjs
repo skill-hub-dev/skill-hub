@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -163,6 +164,42 @@ test('自動掃描：隱藏字元、腳本的連網與執行', () => {
   const r = scanSkillDir(dir);
   assert.deepEqual(r.hidden, ['SKILL.md']);
   assert.deepEqual(r.scripts, [{ file: 'scripts/a.mjs', risks: ['連網', '執行其他程式'] }]);
+});
+
+test('公開內容檢查：抓到路徑、信箱、敏感詞、禁止檔案、commit 身分，也抓得到已刪除的歷史', () => {
+  const repo = tmp();
+  const run = (cmd, args) => execFileSync(cmd, args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const check = () => { try { return { code: 0, out: run(process.execPath, ['scripts/privacy-check.mjs']) } } catch (e) { return { code: e.status, out: e.stdout } } };
+  const commit = (email, msg) => run('git', ['-c', 'user.name=t', '-c', `user.email=${email}`, 'commit', '-qm', msg]);
+  // 故意要被抓到的假資料在執行時才組出來，不然這個測試檔本身也會被公開檢查擋下
+  const badEmail = ['alice', 'company.test'].join('@');
+  const badPath = ['C:', 'Users', 'alice', 'proj'].join('\\');
+  run('git', ['init', '-q']);
+  run('git', ['config', 'user.email', 'bot@users.noreply.github.com']);
+  fs.mkdirSync(path.join(repo, 'scripts'));
+  fs.copyFileSync(path.join(ROOT, 'scripts', 'privacy-check.mjs'), path.join(repo, 'scripts', 'privacy-check.mjs'));
+  fs.writeFileSync(path.join(repo, '.privacy-keywords.local'), '# 測試\nacme-corp\n');
+  fs.writeFileSync(path.join(repo, '.gitignore'), '*.local\n');
+  fs.writeFileSync(path.join(repo, 'ok.md'), '範例路徑 C:\\Users\\u\\dev、https://github.com/example/x\n');
+  run('git', ['add', '-A']);
+  commit('bot@users.noreply.github.com', 'init');
+  assert.equal(check().code, 0);
+
+  // 已經刪掉的檔案：歷史裡還在，要擋
+  fs.writeFileSync(path.join(repo, 'leak.md'), '客戶 ACME-Corp');
+  run('git', ['add', '-A']);
+  commit(badEmail, 'add');
+  fs.rmSync(path.join(repo, 'leak.md'));
+  run('git', ['add', '-A']);
+  commit('bot@users.noreply.github.com', 'remove');
+  // 還沒加入的新檔案：路徑與信箱
+  fs.writeFileSync(path.join(repo, 'new.md'), `見 ${badPath}，聯絡 ${badEmail}`);
+  // 不該公開的設定檔
+  fs.writeFileSync(path.join(repo, 'skill-hub.config.json'), '{}');
+  const r = check();
+  assert.equal(r.code, 1);
+  for (const kind of ['敏感詞', '作者信箱', '本機路徑', '信箱', '禁止公開']) assert.match(r.out, new RegExp(kind), `應該抓到：${kind}`);
+  assert.match(r.out, /leak\.md@/);
 });
 
 test('首次設定：建議設定檔用 ~ 表示家目錄、名稱不重複', () => {

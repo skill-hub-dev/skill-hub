@@ -14,6 +14,8 @@
     "build": "node bin/skill-hub.mjs build",
     "check": "node bin/skill-hub.mjs check",
     "demo": "node bin/skill-hub.mjs build --config examples/demo.config.json",
-    "test": "node --test \"test/*.test.mjs\""
+    "test": "node --test \"test/*.test.mjs\"",
+    "privacy": "node scripts/privacy-check.mjs",
+    "install-hooks": "node scripts/install-hooks.mjs"
   }
 }
