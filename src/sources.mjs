@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseSkillFile } from './frontmatter.mjs';
-import { dirtyFiles, isRepo, logFor, showFile } from './git.mjs';
+import { isRepo, readBlobs, repoHistory } from './git.mjs';
 
 const SKIP_DIR = /^[._]|^(synced|node_modules)$/;
 
@@ -66,12 +66,13 @@ function countFiles(dir) {
   return n;
 }
 
-function versionHistory(repoRoot, relSkillMd, commits) {
+/** mdCommits：改到 SKILL.md 的 commit（新到舊，含改後的 blob） */
+function versionHistory(mdCommits, blobText) {
   // 依時間由舊到新，記下每個版本號第一次出現的 commit
   const versions = [];
   const byHash = {};
-  for (const c of [...commits].reverse()) {
-    const text = showFile(repoRoot, c.hash, relSkillMd);
+  for (const c of [...mdCommits].reverse()) {
+    const text = c.blob ? blobText.get(c.blob) : null;
     const fm = text ? parseSkillFile(text).data : null;
     const v = fm?.metadata?.version ?? fm?.version ?? null;
     byHash[c.hash] = v ? String(v) : null;
@@ -82,8 +83,22 @@ function versionHistory(repoRoot, relSkillMd, commits) {
 
 export function scanSource(source) {
   if (!fs.existsSync(source.path)) throw new Error(`來源「${source.name}」的路徑不存在：${source.path}`);
-  const repo = isRepo(source.path);
-  return skillDirs(source.path).map((dir) => {
+  const dirs = skillDirs(source.path);
+  // 整個來源只讀一次歷史，再分給各 skill
+  const history = isRepo(source.path) ? repoHistory(source.path) : null;
+  const relOf = (dir) => path.relative(source.path, dir).split(path.sep).join('/');
+  const mdCommitsOf = new Map();
+  if (history) {
+    for (const dir of dirs) {
+      const relMd = `${relOf(dir)}/SKILL.md`;
+      mdCommitsOf.set(relMd, history.commits
+        .map((c) => ({ ...c, blob: c.files.find((f) => f.path === relMd && f.status !== 'D')?.blob }))
+        .filter((c) => c.files.some((f) => f.path === relMd)));
+    }
+  }
+  const blobText = history ? readBlobs(source.path, [...new Set([...mdCommitsOf.values()].flat().map((c) => c.blob).filter(Boolean))]) : new Map();
+
+  return dirs.map((dir) => {
     const skillMd = path.join(dir, 'SKILL.md');
     const text = fs.readFileSync(skillMd, 'utf8');
     const { data, body } = parseSkillFile(text);
@@ -94,12 +109,15 @@ export function scanSource(source) {
 
     let commits = [];
     let versions = [];
-    if (repo) {
-      commits = logFor(source.path, rel);
-      const mdCommits = logFor(source.path, relMd);
-      const h = versionHistory(source.path, relMd, mdCommits);
+    let uncommitted = 0;
+    if (history) {
+      const h = versionHistory(mdCommitsOf.get(relMd), blobText);
       versions = h.versions;
-      commits = commits.map((c) => ({ ...c, version: h.byHash[c.hash] ?? null }));
+      commits = history.commits
+        // f.path === rel：資料夾本身被當成一個項目改動（例如內嵌 git repo 轉成一般資料夾的那次 commit）
+        .filter((c) => c.files.some((f) => f.path === rel || f.path.startsWith(`${rel}/`)))
+        .map(({ hash, date, subject }) => ({ hash, date, subject, version: h.byHash[hash] ?? null }));
+      uncommitted = history.dirty.filter((p) => p.startsWith(`${rel}/`)).length;
     }
     const stat = fs.statSync(skillMd);
     const description = typeof fm.description === 'string' ? fm.description : '';
@@ -134,7 +152,7 @@ export function scanSource(source) {
       folders: ['references', 'scripts', 'assets'].filter((f) => fs.existsSync(path.join(dir, f))),
       hasLicenseFile: fs.existsSync(path.join(dir, 'LICENSE')),
       lastModified: commits[0]?.date ?? stat.mtime.toISOString(),
-      uncommitted: repo ? dirtyFiles(source.path, rel) : 0,
+      uncommitted,
       commits: commits.slice(0, 50),
       versions,
       absPath: dir, // 健檢掃描檔案用，輸出前會移除

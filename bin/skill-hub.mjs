@@ -184,6 +184,9 @@ const commands = {
 
   build(args) {
     const cfg = load(args);
+    // --fresh：丟掉使用紀錄快取，全部重讀
+    if (args.fresh && cfg.cacheFile && fs.existsSync(cfg.cacheFile)) fs.rmSync(cfg.cacheFile);
+    const started = Date.now();
     const report = buildReport(cfg);
     fs.mkdirSync(cfg.outDir, { recursive: true });
     fs.writeFileSync(path.join(cfg.outDir, 'skills.json'), JSON.stringify(report, null, 2));
@@ -193,7 +196,7 @@ const commands = {
     const err = report.skills.filter((s) => s.health === 'error').length;
     const warn = report.skills.filter((s) => s.health === 'warn').length;
     const ev = Object.values(report.platforms).reduce((a, p) => a + p.events, 0);
-    console.log(`共 ${n} 個 skill（錯誤 ${err}、警告 ${warn}），使用事件 ${ev} 筆`);
+    console.log(`共 ${n} 個 skill（錯誤 ${err}、警告 ${warn}），使用事件 ${ev} 筆（${((Date.now() - started) / 1000).toFixed(1)} 秒）`);
     for (const note of report.notes) console.log(`  ${ICON.info}${note}`);
     console.log(`儀表板：${html}`);
     if (args.open) openFile(html);

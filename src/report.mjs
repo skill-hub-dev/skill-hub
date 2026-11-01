@@ -8,7 +8,7 @@ import { collectUsage, summarizeUsage } from './usage.mjs';
 
 export function buildReport(cfg, { now = Date.now() } = {}) {
   const skills = cfg.sources.flatMap((src) => scanSource(src));
-  const { events, notes } = collectUsage(cfg.usage);
+  const { events, notes } = collectUsage(cfg.usage, { cacheFile: cfg.cacheFile });
 
   const resolveProject = createProjectResolver(cfg.projects);
   for (const e of events) e.project = resolveProject(e.cwd) || e.project || null;

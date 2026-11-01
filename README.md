@@ -42,6 +42,29 @@ node bin/skill-hub.mjs build --open
 
 想先看看長什麼樣子：`npm run demo`，會用 `examples/` 裡的假資料產生 `out/demo/index.html`。
 
+## 保持資料最新
+
+儀表板是 build 當下的快照，直接打開 `out/index.html` 看到的是上次 build 的資料（左上角顯示產生時間，超過一天會提醒）。使用紀錄有快取，只重讀有變動的紀錄檔，平常 build 只要幾秒；加 `--fresh` 會全部重讀。
+
+**一鍵更新**：雙擊 `scripts/update-dashboard.cmd`（Windows）或執行 `scripts/update-dashboard.sh`（macOS／Linux），會重新產生並打開。可以替它建一個桌面捷徑。
+
+**每天自動更新**：讓系統排程用 `/quiet`（Windows）或 `--quiet`（macOS／Linux）執行，只產生不打開，輸出寫到 `out/last-build.log`。
+
+Windows（PowerShell，每天 9:00，錯過時間會在開機後補跑；路徑換成你的 skill-hub 位置）：
+
+```powershell
+$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -WindowStyle Hidden -Command `"& 'C:\path\to\skill-hub\scripts\update-dashboard.cmd' /quiet`""
+$trigger = New-ScheduledTaskTrigger -Daily -At 9:00
+$settings = New-ScheduledTaskSettingsSet -StartWhenAvailable
+Register-ScheduledTask -TaskName 'SkillHub daily build' -Action $action -Trigger $trigger -Settings $settings
+```
+
+macOS／Linux（crontab -e）：
+
+```
+0 9 * * * /path/to/skill-hub/scripts/update-dashboard.sh --quiet
+```
+
 ## 儀表板
 
 | 分頁 | 內容 |

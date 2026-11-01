@@ -43,6 +43,8 @@ header .spacer { flex: 1; }
 .ghost { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; cursor: pointer; color: var(--muted); }
 .ghost:hover { color: var(--ink); border-color: var(--muted); }
 
+.stale { background: var(--warn-soft); color: var(--warn); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 14px; font-size: 14px; }
+.stale code { background: rgba(0,0,0,0.06); padding: 1px 6px; border-radius: 4px; }
 .tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
 .tile { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; cursor: pointer; text-align: left; }
 .tile:hover { border-color: var(--muted); }
@@ -172,6 +174,7 @@ code, .mono { font-family: var(--mono); font-size: 12.5px; }
     <button class="ghost" id="theme" type="button">切換深淺色</button>
   </header>
 
+  <div class="stale" id="stale" hidden></div>
   <div class="tiles" id="tiles"></div>
   <div class="platforms" id="platforms"></div>
 
@@ -310,6 +313,15 @@ const sorters = {
   health: (a, b) => rank[a.health] - rank[b.health] || b.issues.length - a.issues.length,
   security: (a, b) => secRank[a.security.status] - secRank[b.security.status] || Number(b.thirdParty) - Number(a.thirdParty) || a.folder.localeCompare(b.folder),
 };
+
+// 網頁是 build 當下的快照；打開時距離產生超過一天就提醒更新（用開啟當下的時間比較）
+function renderStale() {
+  const hours = (Date.now() - NOW) / 3600000;
+  if (hours < 24) return;
+  const el = document.getElementById('stale');
+  el.hidden = false;
+  el.innerHTML = `這份資料是 ${Math.floor(hours / 24)} 天前產生的，之後的使用紀錄與 skill 修改不會顯示。更新：在 skill-hub 資料夾執行 <code>node bin/skill-hub.mjs build --open</code>，或雙擊「更新儀表板」。`;
+}
 
 function renderTop() {
   const S = R.skills;
@@ -561,7 +573,7 @@ try {
   const vw = localStorage.getItem('skillhub.view'); if (['skills', 'categories', 'projects', 'setup'].includes(vw)) initialView = vw;
 } catch {}
 document.getElementById('sort').value = state.sort;
-renderTop(); refresh(); renderProjects(); renderSetup(); renderSide();
+renderStale(); renderTop(); refresh(); renderProjects(); renderSetup(); renderSide();
 setView(initialView);
 if (location.hash) openDrawer(decodeURIComponent(location.hash.slice(1)));
 </script>

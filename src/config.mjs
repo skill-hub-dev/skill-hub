@@ -28,6 +28,7 @@ const DEFAULTS = {
   categoryRules: DEFAULT_CATEGORY_RULES,
   projects: { roots: [], aliases: {} },
   securityReviews: 'data/security-reviews.json',
+  cacheFile: 'data/usage-cache.json',
   checks: { unusedDays: 60, descriptionMax: 1024, bodyMaxLines: 500, remote: false },
   outDir: 'out',
 };
@@ -68,6 +69,7 @@ export function loadConfig(configPath) {
     categoryRules: raw.categoryRules || DEFAULTS.categoryRules,
     projects: { roots: (projects.roots || []).map((r) => expandPath(r, base)), aliases: projects.aliases || {} },
     securityReviews: expandPath(raw.securityReviews || DEFAULTS.securityReviews, base),
+    cacheFile: raw.cacheFile === false ? null : expandPath(raw.cacheFile || DEFAULTS.cacheFile, base),
     checks: { ...DEFAULTS.checks, ...raw.checks },
     outDir: expandPath(raw.outDir || DEFAULTS.outDir, base),
   };

@@ -13,7 +13,7 @@ import { buildConfig } from '../src/setup.mjs';
 import { parseSkillFile } from '../src/frontmatter.mjs';
 import { renderDashboard } from '../src/render.mjs';
 import { buildReport } from '../src/report.mjs';
-import { extractTriggers, firstSentence, parseChangelog, sourceInfo } from '../src/sources.mjs';
+import { extractTriggers, firstSentence, parseChangelog, scanSource, sourceInfo } from '../src/sources.mjs';
 import { claudeCodeEvents, codexEvents, summarizeUsage } from '../src/usage.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -99,9 +99,11 @@ test('示範設定：完整報告與健檢', () => {
   const r = buildReport(cfg, { now: Date.parse('2026-10-29T00:00:00Z') });
   const by = Object.fromEntries(r.skills.map((s) => [s.folder, s]));
   assert.equal(r.skills.length, 3);
-  assert.equal(by['meeting-notes'].version, '1.2.0');
+  assert.equal(by['meeting-notes'].version, '1.2.1');
   assert.equal(by['meeting-notes'].usage.total, 4);
-  assert.equal(by['meeting-notes'].health, 'ok');
+  // 來源是 repo 的子資料夾時也要讀得到版本歷史（git 狀態會變，只檢查讀得到、沒有錯誤）
+  assert.ok(by['meeting-notes'].versions.length >= 1);
+  assert.ok(!by['meeting-notes'].issues.some((i) => i.level === 'error'));
   const codes = (n) => by[n].issues.map((i) => i.code);
   assert.ok(codes('tone-polisher').includes('missing-source-commit'));
   assert.ok(codes('tone-polisher').includes('unused'));
@@ -208,6 +210,24 @@ test('來源與作者：metadata.author 優先，第三方從 GitHub 網址取�
   assert.equal(sourceInfo({ upstream: 'https://github.com/example/x', author: '某作者' }).author, '某作者');
   assert.deepEqual(sourceInfo({}), { kind: 'own', author: null, url: null, name: null });
   assert.equal(sourceInfo({ hasLicenseFile: true }).kind, 'third');
+});
+
+test('版本歷史：子資料夾來源、改了沒升版號、未 commit 檔案', () => {
+  const repo = tmp();
+  const run = (args) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@users.noreply.github.com', ...args], { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const skillDir = path.join(repo, 'pack', 'skills', 'alpha');
+  const write = (v, extra = '') => fs.writeFileSync(path.join(skillDir, 'SKILL.md'), `---\nname: alpha\ndescription: 測試「alpha」\nmetadata:\n  version: "${v}"\n---\n# alpha\n${extra}`);
+  run(['init', '-q']);
+  fs.mkdirSync(skillDir, { recursive: true });
+  write('1.0.0'); run(['add', '-A']); run(['commit', '-qm', 'v1']);
+  write('1.1.0'); run(['add', '-A']); run(['commit', '-qm', 'v1.1']);
+  write('1.1.0', '改了內容\n'); run(['add', '-A']); run(['commit', '-qm', 'no bump']);
+  fs.writeFileSync(path.join(skillDir, 'new.md'), 'x');
+  const [s] = scanSource({ name: 't', path: path.join(repo, 'pack') }); // 來源是 repo 的子資料夾
+  assert.deepEqual(s.versions.map((v) => v.version), ['1.1.0', '1.0.0']);
+  assert.equal(s.commits.length, 3);
+  assert.equal(s.uncommitted, 1);
+  assert.deepEqual(s.commits.map((c) => c.version), ['1.1.0', '1.1.0', '1.0.0']);
 });
 
 test('首次設定：建議設定檔用 ~ 表示家目錄、名稱不重複', () => {

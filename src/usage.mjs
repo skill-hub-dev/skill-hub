@@ -37,29 +37,57 @@ const BUILTIN_COMMANDS = new Set(('add-dir agents bug clear compact config conte
   + 'login logout mcp memory model output-style permissions plugin pr-comments release-notes resume review rewind status '
   + 'terminal-setup theme upgrade usage vim').split(' '));
 
-// ---- Claude Code：~/.claude/projects/**/*.jsonl ----
-export function claudeCodeEvents(dir) {
+/**
+ * 逐檔解析並快取：紀錄檔沒變（大小與修改時間相同）就直接用上次的結果。
+ * 對話紀錄只會往後追加，所以「沒變」的檔案通常佔絕大多數。
+ */
+function eventsFromFiles(dir, parseFile, cache, scope) {
   const events = [];
+  const seen = new Set();
   for (const file of walkJsonl(dir)) {
-    for (const o of lines(file, ['"name":"Skill"', '<command-name>'])) {
-      const base = { platform: 'claude-code', ts: o.timestamp, session: o.sessionId || path.basename(file, '.jsonl'), cwd: cwdPath(o.cwd) };
-      const content = o.message?.content;
-      if (o.type === 'assistant' && Array.isArray(content)) {
-        for (const c of content) {
-          if (c?.type === 'tool_use' && c.name === 'Skill' && c.input?.skill) events.push({ ...base, skill: normalizeSkill(c.input.skill) });
-        }
-      } else if (o.type === 'user') {
-        // 使用者直接打 /skill-name
-        const text = typeof content === 'string' ? content : Array.isArray(content) ? content.map((c) => c?.text || '').join('\n') : '';
-        for (const m of text.matchAll(/<command-name>\/?([^<\s]+)<\/command-name>/g)) {
-          const skill = normalizeSkill(m[1]);
-          if (!BUILTIN_COMMANDS.has(skill)) events.push({ ...base, skill });
-        }
+    let st;
+    try { st = fs.statSync(file); } catch { continue; }
+    const key = `${scope}\x1f${file}`;
+    seen.add(key);
+    const hit = cache?.files[key];
+    if (hit && hit.size === st.size && hit.mtimeMs === st.mtimeMs) {
+      events.push(...hit.events);
+      continue;
+    }
+    const found = parseFile(file);
+    if (cache) { cache.files[key] = { size: st.size, mtimeMs: st.mtimeMs, events: found }; cache.dirty = true; }
+    events.push(...found);
+  }
+  // 已刪除的紀錄檔不再保留
+  if (cache) for (const k of Object.keys(cache.files)) if (k.startsWith(`${scope}\x1f`) && !seen.has(k)) { delete cache.files[k]; cache.dirty = true; }
+  return events;
+}
+
+// ---- Claude Code：~/.claude/projects/**/*.jsonl ----
+function parseClaudeFile(file) {
+  const events = [];
+  for (const o of lines(file, ['"name":"Skill"', '<command-name>'])) {
+    const base = { platform: 'claude-code', ts: o.timestamp, session: o.sessionId || path.basename(file, '.jsonl'), cwd: cwdPath(o.cwd) };
+    const content = o.message?.content;
+    if (o.type === 'assistant' && Array.isArray(content)) {
+      for (const c of content) {
+        if (c?.type === 'tool_use' && c.name === 'Skill' && c.input?.skill) events.push({ ...base, skill: normalizeSkill(c.input.skill) });
+      }
+    } else if (o.type === 'user') {
+      // 使用者直接打 /skill-name
+      const text = typeof content === 'string' ? content : Array.isArray(content) ? content.map((c) => c?.text || '').join('\n') : '';
+      for (const m of text.matchAll(/<command-name>\/?([^<\s]+)<\/command-name>/g)) {
+        const skill = normalizeSkill(m[1]);
+        if (!BUILTIN_COMMANDS.has(skill)) events.push({ ...base, skill });
       }
     }
   }
+  return events;
+}
+
+export function claudeCodeEvents(dir, cache) {
   // 打 /x 之後通常緊接著一次 Skill 呼叫，同一對話 2 分鐘內的同名事件只算一次
-  return dedupe(events, 2 * 60 * 1000);
+  return dedupe(eventsFromFiles(dir, parseClaudeFile, cache, 'claude-code'), 2 * 60 * 1000);
 }
 
 // ---- Codex：~/.codex/sessions/**/rollout-*.jsonl ----
@@ -67,21 +95,23 @@ export function claudeCodeEvents(dir) {
 const CODEX_CALL = new Set(['function_call', 'custom_tool_call', 'local_shell_call']);
 const SKILL_PATH = /skills[\\/]+([a-z0-9][a-z0-9_-]*)[\\/]+SKILL\.md/gi;
 
-export function codexEvents(dir) {
+function parseCodexFile(file) {
   const events = [];
-  for (const file of walkJsonl(dir)) {
-    let cwd = null;
-    const session = path.basename(file, '.jsonl');
-    for (const o of lines(file, ['session_meta', 'turn_context', 'SKILL.md'])) {
-      if (o.type === 'session_meta' || o.type === 'turn_context') { cwd = o.payload?.cwd ?? cwd; continue; }
-      if (o.type !== 'response_item' || !CODEX_CALL.has(o.payload?.type)) continue;
-      const args = JSON.stringify(o.payload);
-      for (const m of args.matchAll(SKILL_PATH)) {
-        events.push({ platform: 'codex', skill: m[1], ts: o.timestamp, session, cwd: cwdPath(cwd) });
-      }
+  let cwd = null;
+  const session = path.basename(file, '.jsonl');
+  for (const o of lines(file, ['session_meta', 'turn_context', 'SKILL.md'])) {
+    if (o.type === 'session_meta' || o.type === 'turn_context') { cwd = o.payload?.cwd ?? cwd; continue; }
+    if (o.type !== 'response_item' || !CODEX_CALL.has(o.payload?.type)) continue;
+    const args = JSON.stringify(o.payload);
+    for (const m of args.matchAll(SKILL_PATH)) {
+      events.push({ platform: 'codex', skill: m[1], ts: o.timestamp, session, cwd: cwdPath(cwd) });
     }
   }
-  return dedupe(events, Infinity); // 同一個 session 讀幾次都算用了一次
+  return events;
+}
+
+export function codexEvents(dir, cache) {
+  return dedupe(eventsFromFiles(dir, parseCodexFile, cache, 'codex'), Infinity); // 同一個 session 讀幾次都算用了一次
 }
 
 // ---- 匯入檔（Grok Bot 或任何平台）：每行一筆 {"ts","skill","platform","session","project"|"cwd"} ----
@@ -109,17 +139,38 @@ function dedupe(events, windowMs) {
   });
 }
 
-export function collectUsage(usageCfg) {
+const CACHE_VERSION = 1;
+
+function loadCache(file) {
+  if (!file) return null;
+  try {
+    const c = JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (c.version === CACHE_VERSION && c.files) return { ...c, dirty: false };
+  } catch { /* 沒有或壞掉就重建 */ }
+  return { version: CACHE_VERSION, files: {}, dirty: true };
+}
+
+function saveCache(file, cache) {
+  if (!file || !cache?.dirty) return;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const { dirty, ...data } = cache;
+  fs.writeFileSync(file, JSON.stringify(data));
+}
+
+/** cacheFile：使用紀錄的快取（只存 skill 名稱、時間、工作資料夾），不給就每次全部重讀 */
+export function collectUsage(usageCfg, { cacheFile } = {}) {
   const notes = [];
   let events = [];
+  const cache = loadCache(cacheFile);
   if (usageCfg.claudeCode?.enabled) {
-    if (fs.existsSync(usageCfg.claudeCode.dir)) events = events.concat(claudeCodeEvents(usageCfg.claudeCode.dir));
+    if (fs.existsSync(usageCfg.claudeCode.dir)) events = events.concat(claudeCodeEvents(usageCfg.claudeCode.dir, cache));
     else notes.push(`Claude Code 紀錄資料夾不存在：${usageCfg.claudeCode.dir}`);
   }
   if (usageCfg.codex?.enabled) {
-    if (fs.existsSync(usageCfg.codex.dir)) events = events.concat(codexEvents(usageCfg.codex.dir));
+    if (fs.existsSync(usageCfg.codex.dir)) events = events.concat(codexEvents(usageCfg.codex.dir, cache));
     else notes.push(`Codex 紀錄資料夾不存在：${usageCfg.codex.dir}`);
   }
+  saveCache(cacheFile, cache);
   for (const imp of usageCfg.imports || []) {
     const r = importEvents(imp);
     if (r.missing) notes.push(`${imp.platform} 的匯入檔還沒有資料（${path.basename(imp.file)}）`);
