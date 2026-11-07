@@ -1,0 +1,9 @@
+{
+  "name": "client-switch",
+  "version": "0.1.0",
+  "description": "Knows which client a project belongs to: a client roster, the client shown on the band, and (next blocks) the client's git identity and a guard on commits and pushes.",
+  "author": {
+    "name": "skill-hub-dev"
+  },
+  "types": "./types/index.d.ts"
+}

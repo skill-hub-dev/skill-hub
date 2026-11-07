@@ -1,0 +1,23 @@
+{
+  "clients": {
+    "甲公司": {
+      "github": { "owners": ["example"], "user": "example", "email": "填 commit 用的 email" },
+      "vercel": { "team": "my-team" },
+      "supabase": { "projects": ["填 Supabase project ref"] },
+      "google": { "email": "填 Google 帳號" }
+    },
+    "乙工作室": {
+      "github": { "owners": ["your-name"], "user": "your-name", "email": "填 commit 用的 email" },
+      "cloudflare": { "accounts": ["填 Cloudflare account id"] }
+    }
+  },
+  "projects": {
+    "C:/work/my-shop": { "client": "甲公司", "links": { "vercel": "my-shop" } },
+    "C:/work/landing-page": {
+      "client": "甲公司",
+      "accounts": { "github": "乙工作室", "cloudflare": "乙工作室" },
+      "deploy": "Cloudflare Workers landing-page",
+      "links": { "github": "your-name/landing-page", "cloudflare-worker": "landing-page" }
+    }
+  }
+}

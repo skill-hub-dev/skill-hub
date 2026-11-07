@@ -12,6 +12,15 @@
 - 每次 commit 與推送前執行 `npm run privacy`，沒過不推；不可用 `--no-verify` 跳過 hook。
 - 推送後從 GitHub 公開 API 核對 commit 作者與檔案清單，並回報使用者。
 
+## mods/client-switch（Claude Code mod）
+
+管理多個客戶帳號的 Claude Code mod：依專案判斷客戶、在輸入框上方顯示，並把帳號對照表交給儀表板的「自訂表格分頁」（`tables` 設定）。
+
+- 真實名冊在 `~/.claude/clients.json`，對照表寫到 `~/.claude/client-switch/skill-hub-table.json`，兩者都不進 repo。測試、範例、說明一律用假資料（客戶名稱用「甲公司」「乙工作室」這類）。
+- 進度與規格在 `mods/client-switch/.claude/`（不進版控）。
+- 檢查：`claude plugin validate mods/client-switch`、`claude plugin test mods/client-switch`、`npx -y -p typescript@5.9.3 tsc -p mods/client-switch --noEmit`
+- mod 規則：一次做一塊，做完停下等使用者在桌面 app 驗收；輸入框上方橫條只用 `success`／`warning`／`dimColor` 顏色。
+
 ## 開發
 
 - 測試：`npm test`（node:test）

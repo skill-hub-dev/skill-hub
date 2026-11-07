@@ -216,6 +216,10 @@ npm run demo
 
 新增平台：在 `src/usage.mjs` 寫一個回傳 `{ platform, skill, ts, session, cwd }` 陣列的函式，接到 `collectUsage`。
 
+## 附帶的 Claude Code mod
+
+`mods/client-switch` 是給 Claude Code 用的 mod，管理多個客戶的 GitHub、Vercel、Supabase、Cloudflare、Google 帳號：依專案判斷是哪個客戶、在輸入框上方顯示，並產生「帳號對照」表，透過上面的 `tables` 設定顯示在儀表板。說明見 [mods/client-switch/README.md](mods/client-switch/README.md)。不用這個 mod 也不影響 skill-hub 本身。
+
 ## 貢獻與發布
 
 這個 repo 是公開的，任何檔案、測試、commit 都不能帶有個人資訊。推送前請先讀 [docs/publishing-rules.md](docs/publishing-rules.md)，並執行：
