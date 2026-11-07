@@ -116,6 +116,7 @@ macOS／Linux（crontab -e）：
   "projects": { "roots": [], "aliases": { "my-shop-v2": "my-shop" } },
   "securityReviews": "data/security-reviews.json",
   "checks": { "unusedDays": 60, "descriptionMax": 1024, "bodyMaxLines": 500, "remote": false },
+  "tables": ["~/.config/my-tables/deploy.json"],
   "outDir": "out"
 }
 ```
@@ -125,6 +126,7 @@ macOS／Linux（crontab -e）：
 - **categoryRules**：自動判斷用的關鍵字（選填，有內建預設）。英數關鍵字要整個字相符，中文用包含。
 - **projects**：專案名稱預設取「往上找到的 git repo 資料夾名稱」，Claude Code／Codex 的 worktree 會歸回原專案。`roots` 可以指定「這個資料夾底下第一層就是專案」；`aliases` 把不同名稱合併成同一個專案。
 - **securityReviews**：資安審查紀錄的位置。
+- **tables**（選填）：自訂表格檔的位置，每個檔案在儀表板多一個分頁，分頁裡用子選單切換不同的表。適合讓其他工具把自己的對照表放進同一個儀表板。檔案格式見 [`examples/demo-table.json`](examples/demo-table.json)：`title`、選填的 `description`，以及 `views`（每個有 `title`、選填的 `note`、`columns`、`rows`，值都是文字）。讀不到或格式不對的檔案會列在「設定與說明」的提醒裡。
 - 設定檔可以用記事本編輯，開頭有 BOM 也讀得到。
 
 ## 使用量怎麼算
@@ -206,6 +208,7 @@ npm run demo
 | `src/categories.mjs` | 分類 |
 | `src/security.mjs` | 資安審查紀錄與自動初篩 |
 | `src/checks.mjs` | 健檢 |
+| `src/tables.mjs` | 自訂表格分頁 |
 | `src/setup.mjs` | 首次設定的偵測與建議 |
 | `src/report.mjs` | 彙整 |
 | `web/dashboard.html` | 儀表板範本 |

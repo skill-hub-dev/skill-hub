@@ -15,7 +15,8 @@ const git = (args) => execFileSync('git', ['-c', 'core.quotepath=off', ...args],
 const ch = (c) => String.fromCharCode(c);
 
 // ---- 規則 ----
-const ALLOWED_EMAIL = /^(noreply@anthropic\.com|[A-Za-z0-9._%+-]+@users\.noreply\.github\.com|[A-Za-z0-9._%+-]+@example\.(com|org))$/i;
+// git@github.com 是 GitHub SSH 網址固定的使用者名稱，不是個人信箱
+const ALLOWED_EMAIL = /^(noreply@anthropic\.com|git@github\.com|[A-Za-z0-9._%+-]+@users\.noreply\.github\.com|[A-Za-z0-9._%+-]+@example\.(com|org))$/i;
 // 公開 repo 裡可以出現的網域；其他網址要人工確認後加進來
 const ALLOWED_HOSTS = ['github.com', 'agentskills.io', 'claude.com', '127.0.0.1', 'localhost', 'x', 'example.com', 'example.org'];
 const ALLOWED_GITHUB_OWNERS = ['skill-hub-dev', 'example', '<owner>'];
@@ -47,7 +48,8 @@ function scanText(where, text, { commitMeta = false } = {}) {
     for (const m of line.matchAll(HIDDEN)) report(at, '隱藏字元', `U+${m[0].charCodeAt(0).toString(16).toUpperCase()}`);
     for (const m of line.matchAll(EMAIL)) if (!ALLOWED_EMAIL.test(m[0])) report(at, '信箱', m[0]);
     for (const m of line.matchAll(URL_RE)) {
-      const host = m[1].replace(/:.*$/, '').replace(/^www\./, '').toLowerCase();
+      // 網址裡 @ 前面的使用者名稱已由上面的信箱規則檢查，這裡只看主機
+      const host = m[1].replace(/^[^@]*@/, '').replace(/:.*$/, '').replace(/^www\./, '').toLowerCase();
       if (!ALLOWED_HOSTS.includes(host)) { report(at, '網址', m[0]); continue; }
       if (host === 'github.com') {
         const owner = (m[2] || '').split('/')[1];

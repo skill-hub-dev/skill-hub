@@ -1,0 +1,23 @@
+{
+  "title": "部署對照",
+  "description": "示範用的自訂表格：由其他工具產生，skill-hub 只負責顯示。",
+  "views": [
+    {
+      "title": "依專案",
+      "columns": ["專案", "負責人", "部署位置"],
+      "rows": [
+        ["my-shop", "example", "staging、production"],
+        ["landing-page", "your-name", "production"]
+      ]
+    },
+    {
+      "title": "依環境",
+      "note": "同一個環境底下有哪些專案",
+      "columns": ["環境", "專案"],
+      "rows": [
+        ["staging", "my-shop"],
+        ["production", "my-shop、landing-page"]
+      ]
+    }
+  ]
+}

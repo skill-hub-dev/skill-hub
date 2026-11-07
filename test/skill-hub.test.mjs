@@ -14,6 +14,7 @@ import { parseSkillFile } from '../src/frontmatter.mjs';
 import { renderDashboard } from '../src/render.mjs';
 import { buildReport } from '../src/report.mjs';
 import { extractTriggers, firstSentence, parseChangelog, scanSource, sourceInfo } from '../src/sources.mjs';
+import { loadTables, tableProblem } from '../src/tables.mjs';
 import { claudeCodeEvents, codexEvents, summarizeUsage } from '../src/usage.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -182,7 +183,7 @@ test('公開內容檢查：抓到路徑、信箱、敏感詞、禁止檔案、co
   fs.copyFileSync(path.join(ROOT, 'scripts', 'privacy-check.mjs'), path.join(repo, 'scripts', 'privacy-check.mjs'));
   fs.writeFileSync(path.join(repo, '.privacy-keywords.local'), '# 測試\nacme-corp\n');
   fs.writeFileSync(path.join(repo, '.gitignore'), '*.local\n');
-  fs.writeFileSync(path.join(repo, 'ok.md'), '範例路徑 C:\\Users\\u\\dev、https://github.com/example/x\n');
+  fs.writeFileSync(path.join(repo, 'ok.md'), '範例路徑 C:\\Users\\u\\dev、https://github.com/example/x、git@github.com:example/x.git、https://git@github.com/example/x\n');
   run('git', ['add', '-A']);
   commit('bot@users.noreply.github.com', 'init');
   assert.equal(check().code, 0);
@@ -196,12 +197,15 @@ test('公開內容檢查：抓到路徑、信箱、敏感詞、禁止檔案、co
   commit('bot@users.noreply.github.com', 'remove');
   // 還沒加入的新檔案：路徑與信箱
   fs.writeFileSync(path.join(repo, 'new.md'), `見 ${badPath}，聯絡 ${badEmail}`);
+  // 網址裡的使用者名稱也算信箱
+  fs.writeFileSync(path.join(repo, 'remote.md'), ['https:', '', ['alice', 'github.com'].join('@'), 'example', 'x'].join('/'));
   // 不該公開的設定檔
   fs.writeFileSync(path.join(repo, 'skill-hub.config.json'), '{}');
   const r = check();
   assert.equal(r.code, 1);
   for (const kind of ['敏感詞', '作者信箱', '本機路徑', '信箱', '禁止公開']) assert.match(r.out, new RegExp(kind), `應該抓到：${kind}`);
   assert.match(r.out, /leak\.md@/);
+  assert.match(r.out, /remote\.md:1\s+alice@github\.com/);
 });
 
 test('來源與作者：metadata.author 優先，第三方從 GitHub 網址取帳號', () => {
@@ -238,6 +242,32 @@ test('首次設定：建議設定檔用 ~ 表示家目錄、名稱不重複', ()
   });
   assert.deepEqual(cfg.sources, [{ name: 'skills', path: '~/dev/skills' }, { name: 'skills-2', path: '~/other/skills' }]);
   assert.equal(cfg.usage.codex.enabled, false);
+});
+
+test('自訂表格：示範設定讀得到，壞掉或找不到的檔案列進設定提醒', () => {
+  const r = buildReport(loadConfig(path.join(ROOT, 'examples/demo.config.json')), { now: Date.parse('2026-10-29T00:00:00Z') });
+  assert.equal(r.tables.length, 1);
+  assert.equal(r.tables[0].title, '部署對照');
+  assert.deepEqual(r.tables[0].views.map((v) => v.title), ['依專案', '依環境']);
+  assert.deepEqual(r.tables[0].views[0].rows[0], ['my-shop', 'example', 'staging、production']);
+
+  const dir = tmp();
+  const bad = path.join(dir, 'bad.json');
+  fs.writeFileSync(bad, JSON.stringify({ title: 'x', views: [{ title: 'y', columns: ['a'], rows: [[1]] }] }));
+  const { tables, notes } = loadTables([bad, path.join(dir, 'missing.json')]);
+  assert.equal(tables.length, 0);
+  assert.match(notes[0], /views\[0\]\.rows 每一列要是文字陣列/);
+  assert.match(notes[1], /找不到自訂表格/);
+  assert.equal(tableProblem({ title: 'x', views: [] }), 'views 要是至少一項的陣列');
+});
+
+test('儀表板：自訂表格的文字會跳脫', () => {
+  const html = renderDashboard({
+    generatedAt: '2026-10-29T00:00:00Z', skills: [],
+    tables: [{ title: '<b>x</b>', description: '', views: [{ title: 'v', note: '', columns: ['a'], rows: [['</script>']] }] }],
+  });
+  assert.ok(!html.includes('</script>"'));
+  assert.ok(html.includes('renderTables'));
 });
 
 test('儀表板：資料內嵌時跳脫 </script>', () => {

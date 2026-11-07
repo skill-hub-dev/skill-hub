@@ -4,11 +4,14 @@ import { runChecks, thirdPartyOf } from './checks.mjs';
 import { createProjectResolver } from './projects.mjs';
 import { loadReviews, reviewStatus, scanSkillDir } from './security.mjs';
 import { scanSource } from './sources.mjs';
+import { loadTables } from './tables.mjs';
 import { collectUsage, summarizeUsage } from './usage.mjs';
 
 export function buildReport(cfg, { now = Date.now() } = {}) {
   const skills = cfg.sources.flatMap((src) => scanSource(src));
   const { events, notes } = collectUsage(cfg.usage, { cacheFile: cfg.cacheFile });
+  const tables = loadTables(cfg.tables || []);
+  notes.push(...tables.notes);
 
   const resolveProject = createProjectResolver(cfg.projects);
   for (const e of events) e.project = resolveProject(e.cwd) || e.project || null;
@@ -55,6 +58,7 @@ export function buildReport(cfg, { now = Date.now() } = {}) {
     skills,
     projects: summarizeProjects(events, known),
     unmanaged,
+    tables: tables.tables,
   };
 }
 

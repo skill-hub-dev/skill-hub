@@ -30,6 +30,7 @@ const DEFAULTS = {
   securityReviews: 'data/security-reviews.json',
   cacheFile: 'data/usage-cache.json',
   checks: { unusedDays: 60, descriptionMax: 1024, bodyMaxLines: 500, remote: false },
+  tables: [],
   outDir: 'out',
 };
 
@@ -71,6 +72,7 @@ export function loadConfig(configPath) {
     securityReviews: expandPath(raw.securityReviews || DEFAULTS.securityReviews, base),
     cacheFile: raw.cacheFile === false ? null : expandPath(raw.cacheFile || DEFAULTS.cacheFile, base),
     checks: { ...DEFAULTS.checks, ...raw.checks },
+    tables: (raw.tables || DEFAULTS.tables).map((t) => expandPath(t, base)),
     outDir: expandPath(raw.outDir || DEFAULTS.outDir, base),
   };
   cfg.usage.claudeCode.dir = expandPath(cfg.usage.claudeCode.dir, base);

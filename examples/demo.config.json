@@ -12,5 +12,6 @@
   },
   "securityReviews": "demo-reviews.json",
   "checks": { "unusedDays": 60 },
+  "tables": ["demo-table.json"],
   "outDir": "../out/demo"
 }

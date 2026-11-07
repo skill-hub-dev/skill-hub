@@ -58,6 +58,12 @@ header .spacer { flex: 1; }
 .tab { background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 14px; cursor: pointer; color: var(--muted); white-space: nowrap; }
 .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
 .view[hidden] { display: none; }
+.dtable-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow-x: auto; }
+.dtable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.dtable th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.dtable td { padding: 8px 12px; border-top: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; min-width: 6em; }
+.dtable tr:first-child td { border-top: 0; }
+.dtable td:first-child { font-weight: 600; }
 
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
 .toolbar input[type=search] { flex: 1 1 240px; min-width: 0; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); }
@@ -98,6 +104,7 @@ header .spacer { flex: 1; }
 .empty { padding: 32px; text-align: center; color: var(--muted); }
 
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid2[hidden] { display: none; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
 .card h2 { font-size: 15px; margin: 0 0 4px; overflow-wrap: anywhere; }
 .card p.sub { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
@@ -278,7 +285,7 @@ function spark(weekly, w = 132, h = 26) {
 }
 
 // ---- 狀態 ----
-const state = { view: 'skills', q: '', sort: 'lastUsed', source: '', category: '', filter: 'all', rule: '' };
+const state = { view: 'skills', q: '', sort: 'lastUsed', source: '', category: '', filter: 'all', rule: '', tableViews: {} };
 const FILTERS = [
   ['all', '全部'], ['attention', '需處理'], ['recent', '近 30 天有用'], ['idle', `${R.thresholds.unusedDays} 天沒用`],
   ['never', '從未使用'], ['reviewed', '資安已檢查'], ['unreviewed', '資安未檢查／需重審'], ['third', '第三方'], ['own', '自建'],
@@ -529,20 +536,52 @@ function closeDrawer() {
   history.replaceState(null, '', location.pathname + location.search);
 }
 
+// 自訂表格：每個表格一個分頁（插在「設定與說明」前面），分頁裡用子選單切換 views
+const TABLES = R.tables || [];
+const VIEWS = ['skills', 'categories', 'projects', ...TABLES.map((_, i) => `table-${i}`), 'setup'];
+function renderTables() {
+  const setupTab = document.querySelector('.tab[data-view="setup"]');
+  const setupView = document.getElementById('view-setup');
+  TABLES.forEach((t, i) => {
+    setupTab.insertAdjacentHTML('beforebegin', `<button class="tab" role="tab" data-view="table-${i}" aria-selected="false">${esc(t.title)}</button>`);
+    setupView.insertAdjacentHTML('beforebegin', `<section class="view" id="view-table-${i}" hidden></section>`);
+    renderTable(i);
+  });
+}
+function renderTable(i) {
+  const t = TABLES[i];
+  const j = Math.min(state.tableViews[i] || 0, t.views.length - 1);
+  const v = t.views[j];
+  document.getElementById(`view-table-${i}`).innerHTML = `
+    ${t.description ? `<p style="color:var(--muted);font-size:13px;margin:0 0 12px">${esc(t.description)}</p>` : ''}
+    ${t.views.length > 1 ? `<div class="toolbar"><div class="chips">${t.views.map((x, k) => `<button class="chip" type="button" data-tview="${i}:${k}" aria-pressed="${k === j}">${esc(x.title)}</button>`).join('')}</div></div>` : ''}
+    ${v.note ? `<p style="color:var(--muted);font-size:13px;margin:0 0 10px">${esc(v.note)}</p>` : ''}
+    <div class="dtable-wrap">${v.rows.length
+      ? `<table class="dtable"><thead><tr>${v.columns.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead>
+        <tbody>${v.rows.map((r) => `<tr>${v.columns.map((_, k) => `<td>${esc(r[k] ?? '')}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+      : '<div class="empty">沒有資料</div>'}</div>`;
+}
+
 function setView(v) {
   state.view = v;
   for (const t of document.querySelectorAll('.tab')) t.setAttribute('aria-selected', String(t.dataset.view === v));
-  for (const id of ['skills', 'categories', 'projects', 'setup']) document.getElementById(`view-${id}`).hidden = id !== v;
+  for (const id of VIEWS) document.getElementById(`view-${id}`).hidden = id !== v;
   document.getElementById('filters').hidden = !['skills', 'categories'].includes(v);
-  document.getElementById('more').hidden = v === 'setup';
+  document.getElementById('more').hidden = v === 'setup' || v.startsWith('table-');
   try { localStorage.setItem('skillhub.view', v); } catch {}
 }
 
 // ---- 事件 ----
 function refresh() { renderChips(); renderList(); }
 document.addEventListener('click', (e) => {
-  const t = e.target.closest('[data-filter],[data-rule],[data-id],[data-close],[data-copy],[data-view]');
+  const t = e.target.closest('[data-filter],[data-rule],[data-id],[data-close],[data-copy],[data-view],[data-tview]');
   if (!t) return;
+  if (t.dataset.tview) {
+    const [i, j] = t.dataset.tview.split(':').map(Number);
+    state.tableViews[i] = j;
+    try { localStorage.setItem('skillhub.tableViews', JSON.stringify(state.tableViews)); } catch {}
+    return renderTable(i);
+  }
   if (t.dataset.copy !== undefined) { navigator.clipboard?.writeText(t.dataset.copy); t.textContent = '已複製'; setTimeout(() => (t.textContent = '複製'), 1200); return; }
   if (t.dataset.close !== undefined) return closeDrawer();
   if (t.dataset.view) return setView(t.dataset.view);
@@ -570,10 +609,11 @@ let initialView = 'skills';
 try {
   const th = localStorage.getItem('skillhub.theme'); if (th) document.documentElement.dataset.theme = th;
   const so = localStorage.getItem('skillhub.sort'); if (so && sorters[so]) state.sort = so;
-  const vw = localStorage.getItem('skillhub.view'); if (['skills', 'categories', 'projects', 'setup'].includes(vw)) initialView = vw;
+  const vw = localStorage.getItem('skillhub.view'); if (VIEWS.includes(vw)) initialView = vw;
+  const tv = JSON.parse(localStorage.getItem('skillhub.tableViews') || '{}'); if (tv && typeof tv === 'object') state.tableViews = tv;
 } catch {}
 document.getElementById('sort').value = state.sort;
-renderStale(); renderTop(); refresh(); renderProjects(); renderSetup(); renderSide();
+renderStale(); renderTop(); refresh(); renderProjects(); renderSetup(); renderSide(); renderTables();
 setView(initialView);
 if (location.hash) openDrawer(decodeURIComponent(location.hash.slice(1)));
 </script>
