@@ -48,6 +48,14 @@ node bin/skill-hub.mjs build --open
 
 **一鍵更新**：雙擊 `scripts/update-dashboard.cmd`（Windows）或執行 `scripts/update-dashboard.sh`（macOS／Linux），會重新產生並打開。可以替它建一個桌面捷徑。
 
+**在網頁上按「更新資料」**（Windows）：先在 skill-hub 資料夾執行一次
+
+```bash
+node bin/skill-hub.mjs protocol install
+```
+
+之後儀表板右上角的「更新資料」會執行 `scripts/update-dashboard.cmd /web`，跑完原本的分頁自動重新整理。第一次按時瀏覽器會問要不要開啟外部程式，選允許即可。這個設定只寫在目前使用者的 Windows 設定（`HKCU\Software\Classes\skillhub`），不連網、不需要開伺服器；執行的指令固定，不會帶入網址內容，所以別的網頁就算連到 `skillhub://`，最多也只能觸發一次重新產生。移除：`node bin/skill-hub.mjs protocol remove`；查看：`protocol status`。
+
 **每天自動更新**：讓系統排程用 `/quiet`（Windows）或 `--quiet`（macOS／Linux）執行，只產生不打開，輸出寫到 `out/last-build.log`。
 
 Windows（PowerShell，每天 9:00，錯過時間會在開機後補跑；路徑換成你的 skill-hub 位置）：
@@ -99,6 +107,7 @@ macOS／Linux（crontab -e）：
 | `skill-hub review` | 列出每個 skill 的資安審查狀態 |
 | `skill-hub review <skill> --result pass` | 記錄一次資安審查（見下方） |
 | `skill-hub serve [--port 4173]` | 用 `http://127.0.0.1:4173` 開啟已產生的儀表板 |
+| `skill-hub protocol install\|remove\|status` | 啟用、移除或查看儀表板的「更新資料」按鈕（Windows） |
 
 共用選項：`--config <檔案>`、`--remote`（比對上游）、`--json`（`check`／`usage` 輸出 JSON）。
 

@@ -42,6 +42,7 @@ header .meta { color: var(--muted); font-size: 13px; }
 header .spacer { flex: 1; }
 .ghost { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; cursor: pointer; color: var(--muted); }
 .ghost:hover { color: var(--ink); border-color: var(--muted); }
+a.ghost { text-decoration: none; display: inline-block; }
 
 .stale { background: var(--warn-soft); color: var(--warn); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 14px; font-size: 14px; }
 .stale code { background: rgba(0,0,0,0.06); padding: 1px 6px; border-radius: 4px; }
@@ -178,10 +179,13 @@ code, .mono { font-family: var(--mono); font-size: 12.5px; }
     <h1>Skill Hub</h1>
     <span class="meta" id="meta"></span>
     <span class="spacer"></span>
+    <span class="meta" id="updstate" role="status"></span>
+    <a class="ghost" id="update" href="skillhub://update" title="重新讀取 skill 與使用紀錄（需先執行 skill-hub protocol install）">更新資料</a>
     <button class="ghost" id="theme" type="button">切換深淺色</button>
   </header>
 
   <div class="stale" id="stale" hidden></div>
+  <div class="stale" id="updhelp" hidden></div>
   <div class="tiles" id="tiles"></div>
   <div class="platforms" id="platforms"></div>
 
@@ -327,7 +331,54 @@ function renderStale() {
   if (hours < 24) return;
   const el = document.getElementById('stale');
   el.hidden = false;
-  el.innerHTML = `這份資料是 ${Math.floor(hours / 24)} 天前產生的，之後的使用紀錄與 skill 修改不會顯示。更新：在 skill-hub 資料夾執行 <code>node bin/skill-hub.mjs build --open</code>，或雙擊「更新儀表板」。`;
+  el.innerHTML = `這份資料是 ${Math.floor(hours / 24)} 天前產生的，之後的使用紀錄與 skill 修改不會顯示。更新：在 skill-hub 資料夾執行 <code>node bin/skill-hub.mjs build --open</code>，或按右上角的「更新資料」。`;
+}
+
+// 「更新資料」按鈕連到 skillhub://update，由 Windows 執行 update-dashboard.cmd /web 重新 build（skill-hub protocol install 設定）。
+// 網頁讀不到本機檔案，所以用隱藏的 iframe 每 2 秒載入一次這個檔案，產生時間變了就重新整理整頁。
+const IS_TOP = window.top === window;
+if (!IS_TOP) { try { parent.postMessage({ skillhub: R.generatedAt }, '*'); } catch {} }
+const UPDATE_WAIT = 60000;
+let watching = false;
+function setUpdateState(text) { document.getElementById('updstate').textContent = text; }
+function watchForUpdate() {
+  if (watching) return;
+  watching = true;
+  document.getElementById('updhelp').hidden = true;
+  setUpdateState('更新中…');
+  const from = R.generatedAt;
+  const started = Date.now();
+  const base = location.href.split(/[?#]/)[0];
+  const frame = document.createElement('iframe');
+  frame.hidden = true;
+  frame.title = '檢查是否已更新';
+  document.body.append(frame);
+  const stop = () => { clearInterval(timer); window.removeEventListener('message', onMessage); frame.remove(); watching = false; };
+  const onMessage = (e) => {
+    if (e.source !== frame.contentWindow || typeof e.data?.skillhub !== 'string' || e.data.skillhub === from) return;
+    stop();
+    try { sessionStorage.setItem('skillhub.updated', '1'); } catch {}
+    location.reload();
+  };
+  window.addEventListener('message', onMessage);
+  const timer = setInterval(() => {
+    if (Date.now() - started > UPDATE_WAIT) {
+      stop();
+      setUpdateState('');
+      const help = document.getElementById('updhelp');
+      help.hidden = false;
+      help.innerHTML = '一分鐘內沒有收到新資料。第一次使用要先在 skill-hub 資料夾執行 <code>node bin/skill-hub.mjs protocol install</code>（只需一次，目前只支援 Windows）；已經設定過的話，請看 <code>out/last-build.log</code> 的錯誤訊息。';
+      return;
+    }
+    frame.src = `${base}?probe=${Date.now()}`;
+  }, 2000);
+}
+function renderUpdated() {
+  let updated = false;
+  try { updated = sessionStorage.getItem('skillhub.updated') === '1'; sessionStorage.removeItem('skillhub.updated'); } catch {}
+  if (!updated) return;
+  setUpdateState('已更新');
+  setTimeout(() => setUpdateState(''), 4000);
 }
 
 function renderTop() {
@@ -598,6 +649,7 @@ document.getElementById('q').addEventListener('input', (e) => { state.q = e.targ
 document.getElementById('sort').addEventListener('change', (e) => { state.sort = e.target.value; try { localStorage.setItem('skillhub.sort', state.sort); } catch {} renderList(); });
 document.getElementById('source').addEventListener('change', (e) => { state.source = e.target.value; renderList(); });
 document.getElementById('category').addEventListener('change', (e) => { state.category = e.target.value; renderList(); });
+document.getElementById('update').addEventListener('click', () => watchForUpdate());
 document.getElementById('theme').addEventListener('click', () => {
   const root = document.documentElement;
   const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
@@ -613,7 +665,7 @@ try {
   const tv = JSON.parse(localStorage.getItem('skillhub.tableViews') || '{}'); if (tv && typeof tv === 'object') state.tableViews = tv;
 } catch {}
 document.getElementById('sort').value = state.sort;
-renderStale(); renderTop(); refresh(); renderProjects(); renderSetup(); renderSide(); renderTables();
+renderStale(); if (IS_TOP) renderUpdated(); renderTop(); refresh(); renderProjects(); renderSetup(); renderSide(); renderTables();
 setView(initialView);
 if (location.hash) openDrawer(decodeURIComponent(location.hash.slice(1)));
 </script>

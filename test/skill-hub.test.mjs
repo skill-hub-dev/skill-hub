@@ -12,6 +12,7 @@ import { reviewStatus, scanSkillDir } from '../src/security.mjs';
 import { buildConfig } from '../src/setup.mjs';
 import { parseSkillFile } from '../src/frontmatter.mjs';
 import { renderDashboard } from '../src/render.mjs';
+import { handlerCommand, installSteps, KEY } from '../src/protocol.mjs';
 import { buildReport } from '../src/report.mjs';
 import { extractTriggers, firstSentence, parseChangelog, scanSource, sourceInfo } from '../src/sources.mjs';
 import { loadTables, tableProblem } from '../src/tables.mjs';
@@ -274,4 +275,23 @@ test('儀表板：資料內嵌時跳脫 </script>', () => {
   const html = renderDashboard({ generatedAt: '2026-10-29T00:00:00Z', skills: [{ description: '</script><img onerror=x>' }] });
   assert.ok(!html.includes('</script><img'));
   assert.ok(html.includes('\\u003c/script>'));
+});
+
+test('更新按鈕：skillhub:// 只執行固定指令，不帶網址內容', () => {
+  const file = String.raw`C:\tools\skill-hub\scripts\update-dashboard.cmd`;
+  const cmd = handlerCommand(file, String.raw`C:\Windows`);
+  assert.equal(cmd, String.raw`"C:\Windows\System32\cmd.exe" /c ""C:\tools\skill-hub\scripts\update-dashboard.cmd" /web"`);
+  assert.ok(!cmd.includes('%1'));
+  assert.throws(() => handlerCommand(String.raw`C:\a%PATH%\update-dashboard.cmd`), /無法註冊/);
+  assert.throws(() => handlerCommand(String.raw`C:\a"b\update-dashboard.cmd`), /無法註冊/);
+  const steps = installSteps(file, String.raw`C:\Windows`);
+  assert.ok(KEY.startsWith('HKCU\\Software\\Classes\\'));
+  assert.ok(steps.every((a) => a[1].startsWith(KEY) && a.at(-1) === '/f'));
+  assert.deepEqual(steps[1], ['add', KEY, '/v', 'URL Protocol', '/d', '', '/f']);
+});
+
+test('儀表板：更新按鈕與 iframe 檢查', () => {
+  const html = renderDashboard({ generatedAt: '2026-10-29T00:00:00Z', skills: [] });
+  assert.ok(html.includes('href="skillhub://update"'));
+  assert.ok(html.includes('parent.postMessage({ skillhub: R.generatedAt }'));
 });

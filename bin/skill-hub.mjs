@@ -9,6 +9,7 @@ import readline from 'node:readline/promises';
 import { loadConfig } from '../src/config.mjs';
 import { buildReport } from '../src/report.mjs';
 import { renderDashboard } from '../src/render.mjs';
+import { KEY as PROTOCOL_KEY, installProtocol, protocolStatus, removeProtocol } from '../src/protocol.mjs';
 import { appendReview, loadReviews, reviewStatus } from '../src/security.mjs';
 import { buildConfig, detectSources, detectUsage, suggestions } from '../src/setup.mjs';
 import { scanSource } from '../src/sources.mjs';
@@ -26,6 +27,8 @@ const HELP = `skill-hub — 管理 Agent Skills 正本 repo
   skill-hub review <skill> --result pass|fail [--scope full|partial] [--ref <commit>] [--note <說明>] [--date YYYY-MM-DD]
                                  記錄一次資安審查（照你的審查流程做完後再記）
   skill-hub serve [--port 4173]  用本機網址開啟已產生的儀表板（只聽 127.0.0.1）
+  skill-hub protocol install|remove|status
+                                 啟用／移除儀表板上的「更新資料」按鈕（Windows，只需設定一次）
 
 選項：
   --config <檔案>   設定檔（預設 ./skill-hub.config.json）
@@ -229,6 +232,22 @@ const commands = {
       res.writeHead(200, { 'content-type': types[path.extname(file)] || 'application/octet-stream' });
       fs.createReadStream(file).pipe(res);
     }).listen(port, '127.0.0.1', () => console.log(`儀表板：http://127.0.0.1:${port}/（Ctrl+C 結束）`));
+  },
+
+  protocol(args) {
+    const action = args._[1] || 'status';
+    const cmdFile = path.join(ROOT, 'scripts', 'update-dashboard.cmd');
+    if (action === 'install') {
+      installProtocol(cmdFile);
+      console.log('已啟用儀表板的「更新資料」按鈕。');
+      console.log(`點按鈕時會執行：${cmdFile}`);
+      console.log(`只寫入目前使用者的設定（${PROTOCOL_KEY}），不會連網。移除：skill-hub protocol remove`);
+    } else if (action === 'remove') {
+      console.log(removeProtocol() ? '已移除「更新資料」按鈕的設定。' : '本來就沒有設定。');
+    } else if (action === 'status') {
+      const cmd = protocolStatus();
+      console.log(cmd ? `已啟用，點按鈕時執行：${cmd}` : '還沒啟用。啟用：skill-hub protocol install');
+    } else throw new Error(`不認得的動作：${action}（可用 install、remove、status）`);
   },
 
   usage(args) {
